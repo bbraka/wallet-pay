@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo:*)",
+      "Bash(env)",
+      "Bash(mysql:*)",
+      "Bash(npx:*)",
+      "Bash(DATABASE_URL=\"mysql://user_wallet_user:user_wallet_secret@mysql:3306/user_wallet_app\" npx -y mysql-mcp-server --help)",
+      "Bash(php:*)",
+      "Bash(cat:*)",
+      "Bash(hostname:*)",
+      "Bash(ping:*)",
+      "Bash(MYSQL_HOST=mysql MYSQL_PORT=3306 MYSQL_USER=user_wallet_user MYSQL_PASSWORD=user_wallet_secret MYSQL_DATABASE=user_wallet_app npx -y mysql-mcp-server --help)",
+      "Bash(composer create-project:*)",
+      "mcp__curl__curl",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "Bash(npm install:*)",
+      "Bash(APP_KEY=base64:ykWcEDxmB+YcrAMqj7xoxwPSiS875cL7HrVXUg9tyEA= php artisan test)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "mysql",
+    "puppeteer",
+    "filesystem",
+    "curl",
+    "github"
+  ]
+}

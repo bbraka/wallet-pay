@@ -3,27 +3,45 @@
 ## Overview
 This plan outlines the complete scaffolding setup for a Laravel + React application with user wallet functionality, including comprehensive testing infrastructure.
 
+## Implementation Approach
+**Temporary Installation Strategy:**
+1. Create a temporary folder for Laravel installation
+2. Bootstrap the complete Laravel application in the temporary folder
+3. Merge the created app structure with the current project structure
+4. Delete the temporary folder after successful merge
+5. Preserve existing Docker configurations and project files
+
 ## Pre-Implementation Steps
 1. Check currently running MCP servers
 2. Create feature/reports folder structure for status reports
+3. Create temporary Laravel installation directory
 
-## Phase 1: Package Research & Installation
+## Phase 1: Temporary Laravel Installation
 **Priority: High**
 
-### 1.1 RBAC Package
-- **Package**: `spatie/laravel-permission`
-- **Reason**: Most popular Laravel RBAC package, actively maintained with 12k+ stars
-- **Alternative**: If not suitable, document for separate feature implementation
+### 1.1 Create Temporary Directory
+```bash
+mkdir -p temp-laravel-install
+cd temp-laravel-install
+```
 
-### 1.2 Core Laravel Packages
+### 1.2 Install Laravel in Temporary Directory
+```bash
+composer create-project laravel/laravel . --prefer-dist
+```
+
+### 1.3 Install Additional Packages
 ```bash
 composer require darkaonline/l5-swagger    # OpenAPI annotations
 composer require barryvdh/laravel-dompdf   # PDF generation
 composer require laravel/sanctum           # API authentication
+composer require spatie/laravel-permission # RBAC system
 ```
 
-### 1.3 Database Migrations
-- Use Laravel's built-in migration system (no additional package needed)
+### 1.4 Merge Strategy Planning
+- Identify files to preserve from existing structure
+- Plan directory merge approach
+- Backup existing configurations
 
 ## Phase 2: Database Setup
 **Priority: High**
@@ -233,13 +251,49 @@ location ~ \.php$ {
 - [ ] Frontend tests passing
 - [ ] Status report written in features/reports/001-scaffolding-report.md
 
+## Phase 9: Merge and Cleanup
+**Priority: High**
+
+### 9.1 File Preservation
+- Backup existing files to preserve:
+  - docker-compose.yml
+  - docker/ directory
+  - .env files
+  - README.md
+  - CLAUDE.md
+  - features/ directory
+  - .git/ directory
+
+### 9.2 Merge Laravel Structure
+```bash
+# Copy Laravel structure to root, preserving existing files
+cp -r temp-laravel-install/* /var/www/html/
+# Merge specific directories carefully
+# Restore preserved files
+```
+
+### 9.3 Integration Steps
+- Update .env files with Laravel keys
+- Merge composer.json dependencies
+- Update Docker configurations if needed
+- Ensure proper file permissions
+
+### 9.4 Cleanup
+```bash
+rm -rf temp-laravel-install/
+```
+
 ## Post-Implementation Steps
-1. Run all backend tests (PHPUnit)
-2. Run all frontend tests (Jest + Puppeteer)
-3. Write comprehensive status report documenting:
+1. Test Laravel installation with temporary PHP server
+2. Test nginx configuration with merged files
+3. Run all backend tests (PHPUnit)
+4. Run all frontend tests (Jest + Puppeteer)
+5. Write comprehensive status report documenting:
+   - Temporary installation approach results
    - Packages installed
+   - Merge process outcome
    - Any issues encountered
-   - RBAC package decision
+   - RBAC package integration
    - Test results
    - Next steps
 
