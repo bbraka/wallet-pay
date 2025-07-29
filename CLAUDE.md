@@ -1,9 +1,9 @@
 # Project Architecture
 
 ## Overview
-The web application is inside a docker container. It is a php app which uses the laravel framework for backend. It uses Eloquent. It will use react for frontend with bootstrap 4 for styling. The database is mariadb latest stable version. All php modules are added to the docker configurations. REST endpoints will use openapi annotations. Models in the backend will also be annotated to create a schema for them. Styling will be preprocessed with sass. The container will use nginx to serve the application. Url routing will be pretty so we need proper nginx and laravel configuration. Unit, functional, and integration tests will be performed for each api endpoints and services. All packages are added through composer. Controllers must be thin. Business logic is in services. Controllers send events, listeners call services to execute actions regarding the events. Database structure is added via migrations. All packages which are added must be compatible with latest version of laravel, and must be actively maintained- new commits within the last year and thousands of downloads. Pdfs and reports are generated using jobs. The frontend is a spa. All controllers except the main entry points for the user and admin areas are rest controllers. The customer area and admin area controllers are located in separate folders. The environment variables will be saved in .env files. There will be an option to set a development and production environments. The application will default to a development environment.
+The web application is inside a docker container. It is a php app which uses the laravel framework for backend. It uses Eloquent. It will use react for frontend with bootstrap 4 for styling. The database is mariadb latest stable version. All php modules are added to the docker configurations. REST endpoints will use openapi annotations. Models in the backend will also be annotated to create a schema for them. Styling will be preprocessed with sass. The container will use nginx to serve the application. Url routing will be pretty so we need proper nginx and laravel configuration. Unit, functional, and integration tests will be performed for each api endpoints and services. All packages are added through composer. Controllers must be thin. Business logic is in services. Controllers send events, listeners call services to execute actions regarding the events. Database structure is added via migrations. All packages which are added must be compatible with latest version of laravel, and must be actively maintained- new commits within the last year and thousands of downloads. Pdfs and reports are generated using jobs. The frontend is a spa. All controllers except the main entry points for the user and admin areas are rest controllers. The merchant area and admin area controllers are located in separate folders. The environment variables will be saved in .env files. There will be an option to set a development and production environments. The application will default to a development environment.
 
-Users are two types - customers and administrators. User roles are managed in the admin area by a RBAC page. These roles determine which api endpoints are accessible to each user.
+Users are two types - merchants and administrators. User roles are managed in the admin area by a RBAC page. These roles determine which api endpoints are accessible to each user.
 
 # MCP Usage
 Before implementing a feature - always check the currently running MCP servers
@@ -20,7 +20,7 @@ Write a Status Report in the feature/reports folder
 - Feature tests: PHPUnit for API endpoints
 
 ## Frontend Testing  
-- React Customer Area: Laravel Dusk for E2E testing of React SPA
+- React Merchant Area: Laravel Dusk for E2E testing of React SPA
 - Admin Area (Backpack): Laravel Dusk for Backpack CRUD operations
 - Integration: Dusk tests for complete user workflows spanning both areas
 
@@ -46,14 +46,14 @@ my-app/
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Admin/
-│   │   │   └── Customer/
+│   │   │   └── Merchant/
 │   │   └── Middleware/
 │   ├── Jobs/
 │   ├── Listeners/
 │   ├── Models/
 │   ├── Services/
 │   │   ├── Admin/
-│   │   └── Customer/
+│   │   └── Merchant/
 ├── bootstrap/
 ├── config/
 ├── database/
@@ -72,14 +72,14 @@ my-app/
 │   │   ├── admin/
 │   │   │   ├── App.jsx
 │   │   │   └── components/
-│   │   └── customer/
+│   │   └── merchant/
 │   │       ├── App.jsx
 │   │       └── components/
 │   ├── sass/
 │   │   └── app.scss
 │   └── views/
 │       ├── admin.blade.php
-│       └── customer.blade.php
+│       └── merchant.blade.php
 ├── routes/
 │   ├── api.php
 │   └── web.php
@@ -87,10 +87,10 @@ my-app/
 ├── tests/
 │   ├── Browser/          # Laravel Dusk tests
 │   │   ├── Admin/        # Backpack admin interface tests
-│   │   └── Customer/     # React SPA tests
+│   │   └── Merchant/     # React SPA tests
 │   ├── Feature/          # Laravel feature tests
 │   │   ├── Admin/
-│   │   └── Customer/
+│   │   └── Merchant/
 │   ├── Unit/             # PHPUnit unit tests
 │   └── Integration/      # Integration tests
 ├── .env

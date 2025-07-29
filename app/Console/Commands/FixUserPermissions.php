@@ -20,7 +20,7 @@ class FixUserPermissions extends Command
      *
      * @var string
      */
-    protected $description = 'Fix user permissions - admin gets all permissions, customer gets none';
+    protected $description = 'Fix user permissions - admin gets all permissions, merchant gets none';
 
     /**
      * Execute the console command.
@@ -29,15 +29,15 @@ class FixUserPermissions extends Command
     {
         // Get users
         $adminUser = User::find(4); // Admin User
-        $customerUser = User::find(6); // Test User (customer)
+        $merchantUser = User::find(6); // Test User (merchant)
 
         if (!$adminUser) {
             $this->error('Admin user (ID 4) not found');
             return 1;
         }
 
-        if (!$customerUser) {
-            $this->error('Customer user (ID 6) not found');
+        if (!$merchantUser) {
+            $this->error('Merchant user (ID 6) not found');
             return 1;
         }
 
@@ -48,10 +48,10 @@ class FixUserPermissions extends Command
             return 1;
         }
 
-        // Remove all permissions and roles from customer user
-        $customerUser->syncPermissions([]);
-        $customerUser->syncRoles([]);
-        $this->info('Removed all permissions and roles from customer user: ' . $customerUser->email);
+        // Remove all permissions and roles from merchant user
+        $merchantUser->syncPermissions([]);
+        $merchantUser->syncRoles([]);
+        $this->info('Removed all permissions and roles from merchant user: ' . $merchantUser->email);
 
         // Ensure admin user has admin role
         if (!$adminUser->hasRole('admin')) {
@@ -63,8 +63,8 @@ class FixUserPermissions extends Command
         $adminPermissions = $adminUser->getAllPermissions()->pluck('name')->toArray();
         $this->info('Admin user permissions: ' . implode(', ', $adminPermissions));
         
-        $customerPermissions = $customerUser->getAllPermissions()->pluck('name')->toArray();
-        $this->info('Customer user permissions: ' . (empty($customerPermissions) ? 'None' : implode(', ', $customerPermissions)));
+        $merchantPermissions = $merchantUser->getAllPermissions()->pluck('name')->toArray();
+        $this->info('Merchant user permissions: ' . (empty($merchantPermissions) ? 'None' : implode(', ', $merchantPermissions)));
 
         return 0;
     }

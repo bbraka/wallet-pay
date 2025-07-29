@@ -43,8 +43,8 @@ class RolePermissionSeeder extends Seeder
             'view reports',
         ]);
 
-        // Create customer role
-        $customerRole = Role::firstOrCreate(['name' => 'customer']);
-        // Customers don't get any special permissions by default
+        // Create merchant role
+        $merchantRole = Role::firstOrCreate(['name' => 'merchant']);
+        // Merchants don't get any special permissions by default
     }
 }

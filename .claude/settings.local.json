@@ -52,7 +52,11 @@
       "mcp__github__list_pull_requests",
       "mcp__github__search_issues",
       "mcp__github__get_issue_comments",
-      "mcp__github__search_code"
+      "mcp__github__search_code",
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__edit_file",
+      "mcp__filesystem__move_file",
+      "mcp__mysql__list_databases"
     ]
   },
   "enableAllProjectMcpServers": true,

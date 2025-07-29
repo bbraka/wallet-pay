@@ -26,7 +26,7 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        // Create test user (customer)
+        // Create test user (merchant)
         $testUser = User::updateOrCreate(
             ['email' => 'test@example.com'],
             [
@@ -39,7 +39,7 @@ class AdminUserSeeder extends Seeder
 
         // Get roles
         $adminRole = Role::where('name', 'admin')->first();
-        $customerRole = Role::where('name', 'customer')->first();
+        $merchantRole = Role::where('name', 'merchant')->first();
 
         if ($adminRole) {
             // Assign admin role to admin user
@@ -47,12 +47,12 @@ class AdminUserSeeder extends Seeder
             $this->command->info("Admin user created/updated: admin@example.com (password: password)");
         }
 
-        if ($customerRole) {
-            // Assign customer role to test user
-            $testUser->syncRoles([$customerRole]);
-            $this->command->info("Test user created/updated: test@example.com (password: password) - customer role");
+        if ($merchantRole) {
+            // Assign merchant role to test user
+            $testUser->syncRoles([$merchantRole]);
+            $this->command->info("Test user created/updated: test@example.com (password: password) - merchant role");
         } else {
-            // If no customer role, remove all roles from test user
+            // If no merchant role, remove all roles from test user
             $testUser->syncRoles([]);
             $this->command->info("Test user created/updated: test@example.com (password: password) - no admin access");
         }

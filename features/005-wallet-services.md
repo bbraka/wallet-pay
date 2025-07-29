@@ -1,0 +1,15 @@
+Remove the credit_note_id column from the orders table. Delete it from the CLAUDE.md file as well. We won't be using it. However, add an order type column. The order can either be from one user to another - internal transfer of money, or to receive money from an external source - top up. Create a migration to edit the structure.
+
+Create a service which handles orders - a user can create an order to send money to another user, or to receive money from an external source. Utilize the current models in the database to perform the necessary actions. The order has a status. For our feature, when a user wants to create an order there need to be checks - whether he has more than 0 money in his wallet. If he does - then we can create an order to the other user. Then the order will get a pending_payment status. The successful creation triggers a withdraw money event for the user who is sending the money. Create a custom event listener for this purpose.
+Create a service for transactions. It can be a very simple version of the /wallet template/RxWallet.php file which is an Yii2 example from another project. The service should have an add, withdraw, and cancel methods. We should have checks if there is enough money to withdraw. We should accurately calculate the total amount of money a user has. No documents will be used for this feature. No need to create separate rows for withdrawal based on where the amount was taken from.
+So when we have a withdraw event, the listener should call the service to withdraw money from a user's account. An entry in the transactions table will be created to debit the amount with an active status.Do not add the money to the receiver's account yet.
+Add a method to the orders service to confirm payments. Once a receiver confirms the payment, it will change its status to "completed". This will trigger an "add" event for transactions, and will add money to the receivers account.
+Add another method to the orders service to reject a payment. When this method is called, this should change the status of the order to "canceled". It should trigger a 'cancel' event for the transaction. In the transactions service this event should be handled by changing the status of the debited amount to 'canceled'.
+Create an event on "update" for the transactions table. This will automatically calculate the amount in the users table. The amount is the sum of all transactions for that users, but ignores the 'cencelled' ones.
+Create a service action for the top-up type of order. The status of the order is automatically set to completed. It calls an add event for the transaction table to add the money to the user's wallet.
+All service actions should be handled in transactions. they should return true on success and throw an exception if there is something wrong. The event handlers should catch the response and and send a reply.
+Create a service action to refund orders. This would 
+Do not create the endpoints yet.
+Create the relevant tests to check that the code works.
+
+Create a comprehensive implementation plan.

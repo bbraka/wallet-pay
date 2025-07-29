@@ -1,10 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-function CustomerApp() {
+function MerchantApp() {
     return (
         <div className="container">
-            <h1>User Wallet - Customer Portal</h1>
+            <h1>User Wallet - Merchant Portal</h1>
             <div className="row">
                 <div className="col-md-8">
                     <div className="card">
@@ -12,7 +12,7 @@ function CustomerApp() {
                             <h5>Welcome to Your Wallet</h5>
                         </div>
                         <div className="card-body">
-                            <p>Customer dashboard content will be implemented here.</p>
+                            <p>Merchant dashboard content will be implemented here.</p>
                             <div className="mb-3">
                                 <strong>Wallet Balance:</strong> $0.00
                             </div>
@@ -24,8 +24,8 @@ function CustomerApp() {
     );
 }
 
-const container = document.getElementById('customer-app');
+const container = document.getElementById('merchant-app');
 if (container) {
     const root = createRoot(container);
-    root.render(<CustomerApp />);
+    root.render(<MerchantApp />);
 }

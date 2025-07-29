@@ -43,20 +43,20 @@ class AdminRbacTest extends DuskTestCase
     }
 
     /**
-     * Test customer user cannot access admin area
+     * Test merchant user cannot access admin area
      */
-    public function testCustomerCannotAccessAdminArea(): void
+    public function testMerchantCannotAccessAdminArea(): void
     {
-        // Create customer user
-        $customer = User::factory()->create([
-            'email' => 'customer@test.com',
+        // Create merchant user
+        $merchant = User::factory()->create([
+            'email' => 'merchant@test.com',
             'password' => Hash::make('password')
         ]);
-        $customer->assignRole('customer');
+        $merchant->assignRole('merchant');
 
-        $this->browse(function (Browser $browser) use ($customer) {
+        $this->browse(function (Browser $browser) use ($merchant) {
             $browser->visit('/admin/login')
-                    ->type('email', $customer->email)
+                    ->type('email', $merchant->email)
                     ->type('password', 'password')
                     ->press('Login')
                     ->assertUrlIs('/admin/login')
