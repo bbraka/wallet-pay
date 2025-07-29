@@ -10,8 +10,30 @@ Before implementing a feature - always check the currently running MCP servers
 
 # Feature Creation
 
-After successfully craeting a feature - test backend and frontend.
+After successfully creating a feature - test backend and frontend with Laravel Dusk.
 Write a Status Report in the feature/reports folder
+
+# Testing Strategy
+
+## Backend Testing
+- Unit tests: PHPUnit for service logic and models
+- Feature tests: PHPUnit for API endpoints
+
+## Frontend Testing  
+- React Customer Area: Laravel Dusk for E2E testing of React SPA
+- Admin Area (Backpack): Laravel Dusk for Backpack CRUD operations
+- Integration: Dusk tests for complete user workflows spanning both areas
+
+## Browser Testing with Laravel Dusk
+- Use Laravel Dusk for all browser-based testing (React + Backpack)
+- Chrome runs in Docker container with proper sandbox configuration
+- Test URLs: http://nginx for container-to-container communication
+
+## Puppeteer Testing Setup
+- When testing with Puppeteer MCP server, start a local artisan PHP server first
+- Command: `php artisan serve --host=0.0.0.0 --port=8000 &`
+- Test URLs: http://localhost:8000 for Puppeteer browser automation
+- This ensures proper application access within the container environment
 
 ## General Project Structure
 
@@ -63,11 +85,14 @@ my-app/
 │   └── web.php
 ├── storage/
 ├── tests/
-│   ├── Feature/
+│   ├── Browser/          # Laravel Dusk tests
+│   │   ├── Admin/        # Backpack admin interface tests
+│   │   └── Customer/     # React SPA tests
+│   ├── Feature/          # Laravel feature tests
 │   │   ├── Admin/
 │   │   └── Customer/
-│   ├── Unit/
-│   └── Integration/
+│   ├── Unit/             # PHPUnit unit tests
+│   └── Integration/      # Integration tests
 ├── .env
 ├── .env.production
 ├── composer.json
@@ -121,3 +146,18 @@ my-app/
 
 ### RBAC
 These tables are created with a migration from a RBAC Php package (if one is available, or will be added in a feature)
+
+# Docker Configuration
+
+## Storage Permissions
+The Laravel storage directory requires proper permissions for packages to create subdirectories at runtime. The Docker configuration ensures:
+
+- `storage/` and `bootstrap/cache/` are owned by `www-data:www-data`
+- Permissions are set to 775 (read/write/execute for owner and group)
+- This allows Laravel packages (like Basset for asset management) to create cache directories dynamically
+
+## Current Working Configuration
+- PHP runs as `www-data` user in the container
+- Nginx serves the application from a separate container
+- Storage directories are properly initialized during Docker build
+- Volume mounts preserve proper permissions between container rebuilds

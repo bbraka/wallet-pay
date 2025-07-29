@@ -15,18 +15,17 @@
         "MYSQL_DATABASE": "${MYSQL_DATABASE}"
       }
     },
-    "puppeteer": {
+    "playwright": {
       "type": "stdio",
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-puppeteer@latest"
-      ],
-      "env": {
-        "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/google-chrome",
-        "PUPPETEER_LAUNCH_OPTIONS": "{\"headless\": true, \"args\": [\"--no-sandbox\", \"--disable-setuid-sandbox\", \"--disable-dev-shm-usage\", \"--disable-crash-reporter\"]}",
-        "ALLOW_DANGEROUS": "true"
-      }
+        "@playwright/mcp",
+        "--headless",
+        "--browser=chrome",
+        "--no-sandbox",
+        "--ignore-https-errors"
+      ]
     },
     "filesystem": {
       "type": "stdio",

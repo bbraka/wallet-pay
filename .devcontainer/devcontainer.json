@@ -3,12 +3,13 @@
   "dockerComposeFile": "../docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/var/www/html",
-  "shutdownAction": "stopCompose",  
+  "shutdownAction": "stopCompose",
+  
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-
+  
   "customizations": {
     "vscode": {
       "settings": {
@@ -25,47 +26,31 @@
       },
       "extensions": [
         "onecentlin.laravel-blade",
-        "amiralizadeh9480.laravel-extra-intellisense",
         "bmewburn.vscode-intelephense-client",
         "esbenp.prettier-vscode",
-        "dbaeumer.vscode-eslint",
-        "ms-azuretools.vscode-docker",
-        "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-json",
-        "formulahendry.auto-rename-tag",
-        "christian-kohler.path-intellisense"
+        "ms-azuretools.vscode-docker"
       ]
     }
   },
-
-  "forwardPorts": [80, 5173, 3307],
+  
+  "forwardPorts": [80, 3307],
   "portsAttributes": {
     "80": {
       "label": "User Wallet App",
       "onAutoForward": "notify"
-    },
-    "5173": {
-      "label": "Vite Dev Server",
-      "onAutoForward": "silent"
     },
     "3307": {
       "label": "MariaDB",
       "onAutoForward": "silent"
     }
   },
-
-  "initializeCommand": "docker-compose down",
   
-  "postCreateCommand": [
-    "bash", "-c", 
-    "composer install --no-interaction && npm install && php artisan key:generate --ansi && php artisan storage:link"
-  ],
-
-  "postStartCommand": "php artisan migrate --force",
-
+  "initializeCommand": "docker-compose down",
   "remoteUser": "root",
   
   "mounts": [
     "source=${localWorkspaceFolder}/.env,target=/var/www/html/.env,type=bind,consistency=cached"
   ]
+  
+  // No postCreateCommand or postStartCommand - entrypoint handles everything
 }

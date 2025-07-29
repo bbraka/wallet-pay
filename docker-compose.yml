@@ -3,8 +3,8 @@ version: '3.8'
 services:
   app:
     build:
-      context: ./docker/php
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/php/Dockerfile
     container_name: user_wallet_app
     working_dir: /var/www/html
     volumes:
@@ -17,6 +17,9 @@ services:
       - mysql
     env_file:
       - .env
+    environment:
+      - DISPLAY=:99
+      - PLAYWRIGHT_BROWSERS_PATH=/home/devuser/.cache/ms-playwright
 
   mysql:
     image: mariadb:11.4

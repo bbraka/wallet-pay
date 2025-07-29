@@ -1,61 +1,156 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# User Wallet Application
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based web application with React frontend for managing user wallets, orders, and transactions.
 
-## About Laravel
+## Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This application provides a comprehensive wallet management system with:
+- User wallet balance tracking
+- Order processing with multiple status states
+- Transaction management (credit/debit)
+- Admin area with RBAC (Role-Based Access Control)
+- Customer area with React SPA interface
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Backend**: Laravel with Eloquent ORM
+- **Frontend**: React SPA with Bootstrap 4 styling
+- **Database**: MariaDB (latest stable)
+- **Containerization**: Docker with Nginx
+- **Testing**: Laravel Dusk for E2E testing
 
-## Learning Laravel
+## API Documentation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### OpenAPI/Swagger Documentation
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+The application includes comprehensive API documentation using OpenAPI 3.0 specifications.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+#### Accessing API Documentation
 
-## Laravel Sponsors
+1. **OpenAPI Schema Endpoint**
+   ```
+   GET http://localhost:8000/api/schema
+   ```
+   Returns the complete OpenAPI 3.0 JSON specification for all API endpoints and models.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+2. **Swagger UI Documentation**
+   ```
+   GET http://localhost:8000/api/documentation
+   ```
+   Interactive Swagger UI interface for exploring and testing API endpoints.
 
-### Premium Partners
+3. **Model Schemas**
+   The following models are fully documented with OpenAPI annotations:
+   - **User**: User accounts with wallet balances
+   - **Order**: Order management with status tracking
+   - **Transaction**: Wallet transactions (credit/debit)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+#### For Frontend Developers
 
-## Contributing
+Generate TypeScript interfaces from the OpenAPI schema:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+npm run generate-types
+```
 
-## Code of Conduct
+This creates TypeScript definitions in `resources/js/types/api.ts` that match your Laravel models exactly.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+#### For Backend Developers
 
-## Security Vulnerabilities
+Update API documentation when models change:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan l5-swagger:generate
+```
+
+## Quick Start
+
+### Development Setup
+
+1. **Start the application**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Run migrations**
+   ```bash
+   php artisan migrate --seed
+   ```
+
+4. **Generate API types**
+   ```bash
+   npm run generate-types
+   ```
+
+### Accessing the Application
+
+- **Customer Area**: `http://localhost/customer`
+- **Admin Area**: `http://localhost/admin`
+- **API Documentation**: `http://localhost:8000/api/documentation`
+- **API Schema**: `http://localhost:8000/api/schema`
+
+## Development Workflow
+
+### API Development
+
+1. Update model OpenAPI annotations in `app/Models/`
+2. Regenerate documentation: `php artisan l5-swagger:generate`
+3. Update frontend types: `npm run generate-types`
+
+### Frontend Development
+
+1. Use generated TypeScript interfaces from `resources/js/types/api.ts`
+2. All model properties and enums are type-safe
+3. IDE autocompletion available for all API models
+
+### Testing
+
+Run comprehensive tests including backend and frontend:
+
+```bash
+# Backend tests
+php artisan test
+
+# Frontend E2E tests
+php artisan dusk
+```
+
+## Project Structure
+
+```
+├── app/Models/              # Eloquent models with OpenAPI annotations
+├── app/Http/Controllers/    # API controllers
+├── resources/js/            # React frontend code
+├── resources/js/types/      # Generated TypeScript interfaces
+├── routes/api.php          # API routes
+├── features/               # Feature documentation and reports
+└── tests/Browser/          # Laravel Dusk tests
+```
+
+## Models
+
+### User
+- Wallet balance management
+- Role-based access control
+- Soft delete support
+
+### Order
+- Status: `pending_payment`, `completed`, `cancelled`, `refunded`
+- Credit note generation for refunds
+- User relationship
+
+### Transaction
+- Type: `credit`, `debit`
+- Status: `active`, `cancelled`
+- Order relationship (optional)
+- Audit trail with created_by
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is proprietary software.

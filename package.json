@@ -4,14 +4,17 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "generate-types": "openapi-typescript http://localhost:8000/api/schema -o resources/js/types/api.ts"
     },
     "devDependencies": {
+        "@playwright/test": "^1.54.1",
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-react": "^4.7.0",
         "axios": "^1.8.2",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
+        "openapi-typescript": "^7.8.0",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.4"
     },

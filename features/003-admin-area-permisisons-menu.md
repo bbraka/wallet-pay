@@ -1,0 +1,1 @@
+Create a dropdown menu in the top toolbar for the permissions area in the admin. Check the installed package, areas, and make sure that the test user has admin permissions and is visible
