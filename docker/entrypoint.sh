@@ -110,6 +110,12 @@ php artisan db:seed --force || {
     echo "Database seeding failed, but continuing..."
 }
 
+# Seed wallet providers
+echo "Seeding wallet providers..."
+php artisan db:seed --class=TopUpProviderSeeder --force || {
+    echo "Top-up provider seeding failed, but continuing..."
+}
+
 echo "User setup completed via seeder"
 
 # Clear and cache config

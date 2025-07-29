@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\TransactionStatus;
+use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -102,6 +104,8 @@ class Transaction extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'type' => TransactionType::class,
+            'status' => TransactionStatus::class,
         ];
     }
 
@@ -127,5 +131,57 @@ class Transaction extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', TransactionStatus::ACTIVE);
+    }
+
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', TransactionStatus::CANCELLED);
+    }
+
+    public function scopeByType($query, TransactionType $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    public function scopeCredits($query)
+    {
+        return $query->where('type', TransactionType::CREDIT);
+    }
+
+    public function scopeDebits($query)
+    {
+        return $query->where('type', TransactionType::DEBIT);
+    }
+
+    // Helper methods
+    public function isCredit(): bool
+    {
+        return $this->type === TransactionType::CREDIT;
+    }
+
+    public function isDebit(): bool
+    {
+        return $this->type === TransactionType::DEBIT;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status->isActive();
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status->isCancelled();
+    }
+
+    public function cancel(): void
+    {
+        $this->update(['status' => TransactionStatus::CANCELLED]);
     }
 }

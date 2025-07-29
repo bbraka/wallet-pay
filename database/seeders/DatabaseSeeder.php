@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             AdminUserSeeder::class,
+            TopUpProviderSeeder::class,
         ]);
 
         // Additional test users can be created with factory if needed

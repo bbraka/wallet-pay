@@ -123,12 +123,27 @@ my-app/
 | title | VARCHAR(255) | NOT NULL |
 | amount | DECIMAL(10,2) | NOT NULL |
 | status | ENUM('pending_payment', 'completed', 'cancelled', 'refunded') | NOT NULL |
+| order_type | ENUM('internal_transfer', 'user_top_up', 'admin_top_up') | NOT NULL |
 | description | TEXT | NULL |
 | user_id | BIGINT UNSIGNED | FOREIGN KEY (users.id) |
-| credit_note_number | VARCHAR(255) | UNIQUE, NULL |
+| receiver_user_id | BIGINT UNSIGNED | FOREIGN KEY (users.id), NULL |
+| top_up_provider_id | BIGINT UNSIGNED | FOREIGN KEY (top_up_providers.id), NULL |
+| provider_reference | VARCHAR(255) | NULL |
 | created_at | TIMESTAMP | NOT NULL |
 | updated_at | TIMESTAMP | NULL |
 | deleted_at | TIMESTAMP | NULL |
+
+### top_up_providers
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | BIGINT UNSIGNED | PRIMARY KEY, AUTO_INCREMENT |
+| name | VARCHAR(255) | NOT NULL, UNIQUE |
+| code | VARCHAR(50) | NOT NULL, UNIQUE |
+| description | TEXT | NULL |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true |
+| requires_reference | BOOLEAN | NOT NULL, DEFAULT false |
+| created_at | TIMESTAMP | NOT NULL |
+| updated_at | TIMESTAMP | NULL |
 
 ### transactions
 | Column | Type | Constraints |

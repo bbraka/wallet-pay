@@ -56,7 +56,8 @@
       "mcp__filesystem__read_file",
       "mcp__filesystem__edit_file",
       "mcp__filesystem__move_file",
-      "mcp__mysql__list_databases"
+      "mcp__mysql__list_databases",
+      "Bash(./vendor/bin/phpunit:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

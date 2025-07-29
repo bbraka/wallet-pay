@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -89,9 +91,12 @@ class Order extends Model
         'title',
         'amount',
         'status',
+        'order_type',
         'description',
         'user_id',
-        'credit_note_number',
+        'receiver_user_id',
+        'top_up_provider_id',
+        'provider_reference',
     ];
 
     /**
@@ -103,6 +108,8 @@ class Order extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'status' => OrderStatus::class,
+            'order_type' => OrderType::class,
         ];
     }
 
@@ -115,10 +122,73 @@ class Order extends Model
     }
 
     /**
+     * Get the receiver user for internal transfers.
+     */
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'receiver_user_id');
+    }
+
+    /**
+     * Get the top-up provider for top-up orders.
+     */
+    public function topUpProvider()
+    {
+        return $this->belongsTo(TopUpProvider::class);
+    }
+
+    /**
      * Get the transactions for the order.
      */
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    // Scopes
+    public function scopeByType($query, OrderType $type)
+    {
+        return $query->where('order_type', $type);
+    }
+
+    public function scopeByStatus($query, OrderStatus $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', OrderStatus::PENDING_PAYMENT);
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', OrderStatus::COMPLETED);
+    }
+
+    // Helper methods
+    public function isInternalTransfer(): bool
+    {
+        return $this->order_type === OrderType::INTERNAL_TRANSFER;
+    }
+
+    public function isTopUp(): bool
+    {
+        return $this->order_type->isTopUp();
+    }
+
+    public function canBeConfirmed(): bool
+    {
+        return $this->status->canBeConfirmed();
+    }
+
+    public function canBeRejected(): bool
+    {
+        return $this->status->canBeRejected();
+    }
+
+    public function canBeRefunded(): bool
+    {
+        return $this->status->canBeRefunded();
     }
 }
