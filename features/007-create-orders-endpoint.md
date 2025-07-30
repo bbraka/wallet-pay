@@ -1,0 +1,5 @@
+create the orders endpoint. it should allow crud operations for an order. here are the rules. a user can create a top-up order for himself at any time. create an endpoint to return a list of the possible top-up providers. the amount for the top-up has a limit of 10000. Set the limit in the orders service, but also send it as an endpoint in an orders/rules GET request. If the order is a transfer, the endpoint should receive a post request with the receiver's user_id as well. Updates to an existing order are acceptable if it's not yet completed or cancelled. An order can be cancelled only if it's pending. Create an endpoint that returns a list of all the current user's orders, which receives as parameters filtering by date range, amount, status, and receiver user id.
+
+Follow the rules in CLAUDE.md - the controller should be thin and only trigger events, logic should stay in the orders service. Create OpenAPI annotations for the new endpoint.
+
+Create the necessary tests for the endpoint.

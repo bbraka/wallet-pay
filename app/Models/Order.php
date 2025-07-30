@@ -82,6 +82,9 @@ class Order extends Model
 {
     use HasFactory, SoftDeletes;
 
+    const MAX_TOP_UP_AMOUNT = 10000;
+    const MAX_TRANSFER_AMOUNT = 5000;
+
     /**
      * The attributes that are mass assignable.
      *
