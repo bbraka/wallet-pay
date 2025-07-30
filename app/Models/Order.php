@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
+use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -34,8 +35,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *     @OA\Property(
  *         property="status",
  *         type="string",
- *         enum={"pending_payment", "completed", "cancelled", "refunded"},
+ *         enum={"pending_payment", "pending_approval", "completed", "cancelled", "refunded"},
  *         description="Order status"
+ *     ),
+ *     @OA\Property(
+ *         property="order_type",
+ *         type="string",
+ *         enum={"internal_transfer", "user_top_up", "admin_top_up", "user_withdrawal", "admin_withdrawal"},
+ *         description="Order type"
  *     ),
  *     @OA\Property(
  *         property="description",
@@ -75,12 +82,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *         format="date-time",
  *         nullable=true,
  *         description="Soft delete timestamp"
+ *     ),
+ *     @OA\Property(
+ *         property="payment_completion_date",
+ *         type="string",
+ *         format="date-time",
+ *         nullable=true,
+ *         description="Date when payment was completed"
  *     )
  * )
  */
 class Order extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, CrudTrait;
 
     const MAX_TOP_UP_AMOUNT = 10000;
     const MAX_TRANSFER_AMOUNT = 5000;
@@ -100,6 +114,7 @@ class Order extends Model
         'receiver_user_id',
         'top_up_provider_id',
         'provider_reference',
+        'payment_completion_date',
     ];
 
     /**
@@ -113,6 +128,7 @@ class Order extends Model
             'amount' => 'decimal:2',
             'status' => OrderStatus::class,
             'order_type' => OrderType::class,
+            'payment_completion_date' => 'datetime',
         ];
     }
 
@@ -180,6 +196,16 @@ class Order extends Model
         return $this->order_type->isTopUp();
     }
 
+    public function isWithdrawal(): bool
+    {
+        return $this->order_type->isWithdrawal();
+    }
+
+    public function requiresApproval(): bool
+    {
+        return $this->order_type->requiresApproval();
+    }
+
     public function canBeConfirmed(): bool
     {
         return $this->status->canBeConfirmed();
@@ -193,5 +219,10 @@ class Order extends Model
     public function canBeRefunded(): bool
     {
         return $this->status->canBeRefunded();
+    }
+
+    public function getProviderName(): string
+    {
+        return $this->topUpProvider ? $this->topUpProvider->name : '-';
     }
 }

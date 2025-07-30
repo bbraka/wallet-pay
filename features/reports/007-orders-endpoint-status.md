@@ -123,6 +123,39 @@ GET    /api/merchant/top-up-providers ✅ List active providers
 - Selective field loading in API responses
 - Indexed filtering on common fields
 
+## Recent Enhancement (2025-07-30) ✅
+
+### Automatic Order Description Generation
+
+**Feature Added**: Intelligent description generation for all order types.
+
+**Implementation Details**:
+- **New Method**: `generateOrderDescription()` in OrdersService
+- **Smart Descriptions**: Context-aware descriptions based on order type and participants
+- **Examples**:
+  - Internal Transfer: "Received funds from user@example.com to receiver@example.com"
+  - User Top-up: "Order purchased funds #123 - User top-up by user@example.com"
+  - Admin Top-up: "Admin top-up for user@example.com - Order #123"
+  - User Withdrawal: "User withdrawal request by user@example.com - Order #123"
+
+**Integration Points**:
+- Updated `createOrder()` to auto-generate descriptions
+- Updated `createAdminTopUp()` to include order context
+- Updated `createWithdrawalRequest()` for withdrawal context
+- Custom descriptions still take precedence when provided
+
+**Testing Coverage**:
+- Added 2 new comprehensive test methods
+- Tests all order types and description formats
+- Validates integration with existing order workflows
+- Verifies custom description handling
+
+**Benefits**:
+- Improved order tracking and audit trails
+- Better user experience with descriptive order history
+- Consistent description format across all order types
+- Maintains backward compatibility with custom descriptions
+
 ## Future Enhancements
 
 ### Phase 2 Recommendations

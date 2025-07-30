@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Events\MoneyAddedEvent;
 use App\Events\MoneyWithdrawnEvent;
+use App\Events\OrderStatusChanged;
 use App\Events\TransactionCancelledEvent;
 use App\Exceptions\Wallet\InsufficientBalanceException;
 use App\Exceptions\Wallet\InvalidOrderStatusException;
@@ -130,6 +131,9 @@ class OrderService
                 'provider_reference' => $providerReference,
             ]);
 
+            // Dispatch status change event for completion date tracking
+            event(new OrderStatusChanged($order, OrderStatus::PENDING_PAYMENT, OrderStatus::COMPLETED));
+
             // Immediately add money to target user's wallet
             event(new MoneyAddedEvent($targetUser, $amount, $order));
 
@@ -147,7 +151,11 @@ class OrderService
         }
 
         DB::transaction(function () use ($order, $confirmer) {
+            $previousStatus = $order->status;
             $order->update(['status' => OrderStatus::COMPLETED]);
+
+            // Dispatch status change event for completion date tracking
+            event(new OrderStatusChanged($order, $previousStatus, OrderStatus::COMPLETED));
 
             // Handle different order types
             if ($order->order_type === OrderType::INTERNAL_TRANSFER) {
@@ -200,6 +208,98 @@ class OrderService
                 event(new TransactionCancelledEvent($transaction));
             }
         });
+    }
+
+    // Withdrawal Methods
+
+    /**
+     * Process a withdrawal request (creates pending approval order)
+     */
+    public function processWithdrawalRequest(
+        User $user,
+        float $amount,
+        string $description,
+        OrderType $orderType
+    ): Order {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Withdrawal amount must be positive');
+        }
+
+        // Check if user has sufficient balance for user withdrawals
+        if ($orderType === OrderType::USER_WITHDRAWAL && 
+            !$this->walletService->hasSufficientBalance($user, $amount)) {
+            throw new InsufficientBalanceException(
+                "Insufficient balance for withdrawal. Required: {$amount}, Available: {$this->walletService->calculateUserBalance($user)}"
+            );
+        }
+
+        // Create withdrawal order with pending approval status
+        $order = Order::create([
+            'title' => $orderType === OrderType::USER_WITHDRAWAL ? 'User Withdrawal Request' : 'Admin Withdrawal',
+            'amount' => $amount,
+            'status' => OrderStatus::PENDING_APPROVAL,
+            'order_type' => $orderType,
+            'description' => $description,
+            'user_id' => $user->id,
+        ]);
+
+        return $order;
+    }
+
+    /**
+     * Approve a withdrawal order
+     */
+    public function approveWithdrawal(Order $order): void
+    {
+        if (!$order->isWithdrawal()) {
+            throw new \InvalidArgumentException('Order is not a withdrawal order');
+        }
+
+        if (!$order->canBeConfirmed()) {
+            throw new InvalidOrderStatusException('Order cannot be approved in its current status');
+        }
+
+        // Check balance again at approval time (for user withdrawals)
+        if ($order->order_type === OrderType::USER_WITHDRAWAL && 
+            !$this->walletService->hasSufficientBalance($order->user, $order->amount)) {
+            throw new InsufficientBalanceException(
+                "Insufficient balance to complete withdrawal. Required: {$order->amount}, Available: {$this->walletService->calculateUserBalance($order->user)}"
+            );
+        }
+
+        DB::transaction(function () use ($order) {
+            $previousStatus = $order->status;
+            $order->update(['status' => OrderStatus::COMPLETED]);
+
+            // Dispatch status change event for completion date tracking
+            event(new OrderStatusChanged($order, $previousStatus, OrderStatus::COMPLETED));
+
+            // Withdraw money from user's wallet
+            event(new MoneyWithdrawnEvent($order->user, $order->amount, $order));
+        });
+    }
+
+    /**
+     * Deny a withdrawal order
+     */
+    public function denyWithdrawal(Order $order, ?string $reason = null): void
+    {
+        if (!$order->isWithdrawal()) {
+            throw new \InvalidArgumentException('Order is not a withdrawal order');
+        }
+
+        if (!$order->canBeRejected()) {
+            throw new InvalidOrderStatusException('Order cannot be denied in its current status');
+        }
+
+        $previousStatus = $order->status;
+        $order->update([
+            'status' => OrderStatus::CANCELLED,
+            'description' => $order->description . ($reason ? " (Denied: {$reason})" : ' (Denied)')
+        ]);
+
+        // Dispatch status change event
+        event(new OrderStatusChanged($order, $previousStatus, OrderStatus::CANCELLED));
     }
 
     // Provider Management Methods

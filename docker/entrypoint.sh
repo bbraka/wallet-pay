@@ -126,6 +126,41 @@ php artisan migrate --force || {
     echo "Migration failed, but continuing..."
 }
 
+# Setup test database if not in production
+if [ "${APP_ENV:-local}" != "production" ]; then
+    echo "Setting up test database..."
+    
+    # Create test database if it doesn't exist
+    php artisan tinker --execute="
+        try {
+            // Configure root connection
+            config(['database.connections.mysql_root' => [
+                'driver' => 'mysql',
+                'host' => env('DB_HOST'),
+                'port' => env('DB_PORT'),
+                'database' => '',
+                'username' => 'root',
+                'password' => env('MYSQL_ROOT_PASSWORD'),
+                'charset' => 'utf8mb4',
+                'collation' => 'utf8mb4_unicode_ci',
+            ]]);
+            
+            // Create test database and grant permissions
+            DB::connection('mysql_root')->statement('CREATE DATABASE IF NOT EXISTS user_wallet_app_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            DB::connection('mysql_root')->statement('GRANT ALL PRIVILEGES ON user_wallet_app_test.* TO \"user_wallet_user\"@\"%\"');
+            DB::connection('mysql_root')->statement('FLUSH PRIVILEGES');
+            echo 'Test database setup completed successfully!' . PHP_EOL;
+        } catch (Exception \$e) {
+            echo 'Test database setup failed: ' . \$e->getMessage() . PHP_EOL;
+        }
+    " || echo "Test database creation failed, but continuing..."
+    
+    # Run migrations on test database
+    php artisan migrate --database=mysql_testing --force || {
+        echo "Test database migration failed, but continuing..."
+    }
+fi
+
 # Seed the database
 echo "Seeding database..."
 php artisan db:seed --force || {

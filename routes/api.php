@@ -25,6 +25,7 @@ Route::prefix('merchant')->name('merchant.')->group(function () {
         // Orders CRUD
         Route::get('/orders', [OrdersController::class, 'index'])->name('orders.index');
         Route::post('/orders', [OrdersController::class, 'store'])->name('orders.store');
+        Route::post('/orders/withdrawal', [OrdersController::class, 'withdrawal'])->name('orders.withdrawal');
         Route::get('/orders/rules', [OrdersController::class, 'rules'])->name('orders.rules');
         Route::get('/orders/{order}', [OrdersController::class, 'show'])->name('orders.show')->where('order', '[0-9]+');
         Route::put('/orders/{order}', [OrdersController::class, 'update'])->name('orders.update')->where('order', '[0-9]+');

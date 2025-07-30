@@ -62,7 +62,7 @@ class OrdersController extends Controller
      *         name="status",
      *         in="query",
      *         description="Filter by order status",
-     *         @OA\Schema(type="string", enum={"pending_payment", "completed", "cancelled", "refunded"})
+     *         @OA\Schema(type="string", enum={"pending_payment", "pending_approval", "completed", "cancelled", "refunded"})
      *     ),
      *     @OA\Parameter(
      *         name="receiver_user_id",
@@ -258,5 +258,40 @@ class OrdersController extends Controller
         $cancelledOrder = $this->ordersService->cancelOrder($order);
         
         return response()->json($cancelledOrder);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/merchant/orders/withdrawal",
+     *     tags={"Orders"},
+     *     summary="Create a withdrawal request",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"amount"},
+     *             @OA\Property(property="amount", type="number", format="decimal"),
+     *             @OA\Property(property="description", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Withdrawal request created successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error or insufficient balance"
+     *     )
+     * )
+     */
+    public function withdrawal(CreateOrderRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validated();
+        
+        $order = $this->ordersService->createWithdrawalRequest($user, $data);
+        
+        return response()->json($order, 201);
     }
 }

@@ -7,6 +7,7 @@ use App\Enums\OrderType;
 use App\Events\OrderCancelled;
 use App\Events\OrderCreated;
 use App\Events\OrderUpdated;
+use App\Events\WithdrawalRequested;
 use App\Models\Order;
 use App\Models\TopUpProvider;
 use App\Models\User;
@@ -44,16 +45,39 @@ class OrdersService
         }
 
         return DB::transaction(function () use ($user, $data, $orderType) {
+            // Get receiver user if this is a transfer
+            $receiver = null;
+            if ($orderType === OrderType::INTERNAL_TRANSFER && !empty($data['receiver_user_id'])) {
+                $receiver = User::find($data['receiver_user_id']);
+            }
+
             $order = Order::create([
                 'title' => $data['title'],
                 'amount' => $data['amount'],
                 'status' => OrderStatus::PENDING_PAYMENT,
                 'order_type' => $orderType,
-                'description' => $data['description'] ?? null,
+                'description' => $this->generateOrderDescription(
+                    $orderType,
+                    $user,
+                    $receiver,
+                    null,
+                    $data['description'] ?? null
+                ),
                 'user_id' => $user->id,
                 'receiver_user_id' => $data['receiver_user_id'] ?? null,
                 'top_up_provider_id' => $data['top_up_provider_id'] ?? null,
                 'provider_reference' => $data['provider_reference'] ?? null,
+            ]);
+
+            // Update the order description with the actual order ID
+            $order->update([
+                'description' => $this->generateOrderDescription(
+                    $orderType,
+                    $user,
+                    $receiver,
+                    $order->id,
+                    $data['description'] ?? null
+                )
             ]);
 
             event(new OrderCreated($order));
@@ -103,17 +127,66 @@ class OrdersService
         });
     }
 
+    public function createWithdrawalRequest(User $user, array $data): Order
+    {
+        $this->validateWithdrawalData($data);
+        $this->validateAmountLimit($data['amount'], OrderType::USER_WITHDRAWAL);
+
+        return DB::transaction(function () use ($user, $data) {
+            // Generate description for withdrawal
+            $description = $this->generateOrderDescription(
+                OrderType::USER_WITHDRAWAL,
+                $user,
+                null,
+                null,
+                $data['description'] ?? null
+            );
+
+            // Dispatch withdrawal requested event - listener will create the order
+            event(new WithdrawalRequested(
+                $user,
+                $data['amount'],
+                $description,
+                OrderType::USER_WITHDRAWAL
+            ));
+
+            // Find the created order by latest withdrawal for this user
+            $order = Order::where('user_id', $user->id)
+                ->where('order_type', OrderType::USER_WITHDRAWAL)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Update description with order ID
+            if ($order) {
+                $order->update([
+                    'description' => $this->generateOrderDescription(
+                        OrderType::USER_WITHDRAWAL,
+                        $user,
+                        null,
+                        $order->id,
+                        $data['description'] ?? null
+                    )
+                ]);
+            }
+
+            return $order->load(['user']);
+        });
+    }
+
     public function getValidationRules(): array
     {
         return [
             'max_top_up_amount' => Order::MAX_TOP_UP_AMOUNT,
             'max_transfer_amount' => Order::MAX_TRANSFER_AMOUNT,
+            'max_withdrawal_amount' => Order::MAX_TRANSFER_AMOUNT, // Same limit as transfers
             'required_fields' => [
                 'top_up' => ['title', 'amount', 'top_up_provider_id'],
                 'transfer' => ['title', 'amount', 'receiver_user_id'],
+                'withdrawal' => ['amount'],
             ],
             'allowed_statuses' => [
                 OrderStatus::PENDING_PAYMENT->value,
+                OrderStatus::PENDING_APPROVAL->value,
                 OrderStatus::COMPLETED->value,
                 OrderStatus::CANCELLED->value,
                 OrderStatus::REFUNDED->value,
@@ -168,6 +241,7 @@ class OrdersService
         $maxAmount = match ($orderType) {
             OrderType::INTERNAL_TRANSFER => Order::MAX_TRANSFER_AMOUNT,
             OrderType::USER_TOP_UP, OrderType::ADMIN_TOP_UP => Order::MAX_TOP_UP_AMOUNT,
+            OrderType::USER_WITHDRAWAL, OrderType::ADMIN_WITHDRAWAL => Order::MAX_TRANSFER_AMOUNT,
         };
 
         if ($amount > $maxAmount) {
@@ -239,5 +313,108 @@ class OrdersService
                 'amount' => ['Amount is required and must be numeric.']
             ]);
         }
+    }
+
+    protected function validateWithdrawalData(array $data): void
+    {
+        if (empty($data['amount']) || !is_numeric($data['amount'])) {
+            throw ValidationException::withMessages([
+                'amount' => ['Amount is required and must be numeric.']
+            ]);
+        }
+
+        if ($data['amount'] <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => ['Amount must be greater than 0.']
+            ]);
+        }
+    }
+
+    /**
+     * Generate a descriptive description for an order based on its type and context
+     */
+    public function generateOrderDescription(OrderType $orderType, User $user, ?User $receiver = null, ?int $orderId = null, ?string $customDescription = null): string
+    {
+        // If custom description is provided, use it
+        if (!empty($customDescription)) {
+            return $customDescription;
+        }
+
+        return match ($orderType) {
+            OrderType::INTERNAL_TRANSFER => "Received funds from {$user->email}" . ($receiver ? " to {$receiver->email}" : ''),
+            OrderType::USER_TOP_UP => "Order purchased funds #{$orderId}" . ($orderId ? " - User top-up by {$user->email}" : " - User top-up by {$user->email}"),
+            OrderType::ADMIN_TOP_UP => "Admin top-up for {$user->email}" . ($orderId ? " - Order #{$orderId}" : ''),
+            OrderType::USER_WITHDRAWAL => "User withdrawal request by {$user->email}" . ($orderId ? " - Order #{$orderId}" : ''),
+            OrderType::ADMIN_WITHDRAWAL => "Admin withdrawal for {$user->email}" . ($orderId ? " - Order #{$orderId}" : ''),
+        };
+    }
+
+    public function createAdminTopUp(User $targetUser, array $data, User $adminUser): Order
+    {
+        $this->validateOrderData($data);
+        $this->validateAmountLimit($data['amount'], OrderType::ADMIN_TOP_UP);
+        $this->validateTopUpProvider($data['top_up_provider_id'] ?? null);
+
+        return DB::transaction(function () use ($targetUser, $data, $adminUser) {
+            // Create order as completed since admin top-ups are immediate
+            $order = Order::create([
+                'title' => $data['title'],
+                'amount' => $data['amount'],
+                'status' => OrderStatus::COMPLETED,
+                'order_type' => OrderType::ADMIN_TOP_UP,
+                'description' => $this->generateOrderDescription(
+                    OrderType::ADMIN_TOP_UP, 
+                    $targetUser, 
+                    null, 
+                    null, 
+                    $data['description'] ?? null
+                ),
+                'user_id' => $targetUser->id,
+                'receiver_user_id' => null,
+                'top_up_provider_id' => $data['top_up_provider_id'],
+                'provider_reference' => $data['provider_reference'] ?? null,
+            ]);
+
+            // Update the order description with the actual order ID
+            $order->update([
+                'description' => $this->generateOrderDescription(
+                    OrderType::ADMIN_TOP_UP, 
+                    $targetUser, 
+                    null, 
+                    $order->id, 
+                    $data['description'] ?? null
+                )
+            ]);
+
+            // Create transaction record (observer will update wallet)
+            \App\Models\Transaction::create([
+                'user_id' => $targetUser->id,
+                'type' => \App\Enums\TransactionType::CREDIT,
+                'amount' => $data['amount'],
+                'status' => \App\Enums\TransactionStatus::ACTIVE,
+                'description' => $this->generateOrderDescription(
+                    OrderType::ADMIN_TOP_UP, 
+                    $targetUser, 
+                    null, 
+                    $order->id, 
+                    $data['description'] ?? null
+                ),
+                'created_by' => $adminUser->id, // Admin who created the transaction
+                'order_id' => $order->id,
+            ]);
+
+            // Log admin action
+            \Log::info('Admin created top-up order', [
+                'admin_id' => $adminUser->id,
+                'admin_email' => $adminUser->email,
+                'order_id' => $order->id,
+                'target_user_id' => $targetUser->id,
+                'amount' => $data['amount'],
+            ]);
+
+            event(new OrderCreated($order));
+
+            return $order->load(['user', 'topUpProvider']);
+        });
     }
 }

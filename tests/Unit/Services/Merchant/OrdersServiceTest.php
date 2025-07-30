@@ -35,6 +35,77 @@ class OrdersServiceTest extends TestCase
         $this->provider = TopUpProvider::factory()->create(['is_active' => true]);
     }
 
+    public function test_generates_descriptive_order_descriptions(): void
+    {
+        $adminUser = User::factory()->create(['email' => 'admin@test.com']);
+        $targetUser = User::factory()->create(['email' => 'user@test.com']);
+        $receiverUser = User::factory()->create(['email' => 'receiver@test.com']);
+
+        // Test admin top-up description
+        $adminDescription = $this->service->generateOrderDescription(
+            OrderType::ADMIN_TOP_UP,
+            $targetUser,
+            null,
+            123
+        );
+        $this->assertEquals('Admin top-up for user@test.com - Order #123', $adminDescription);
+
+        // Test user top-up description
+        $userTopUpDescription = $this->service->generateOrderDescription(
+            OrderType::USER_TOP_UP,
+            $targetUser,
+            null,
+            456
+        );
+        $this->assertEquals('Order purchased funds #456 - User top-up by user@test.com', $userTopUpDescription);
+
+        // Test internal transfer description
+        $transferDescription = $this->service->generateOrderDescription(
+            OrderType::INTERNAL_TRANSFER,
+            $targetUser,
+            $receiverUser,
+            789
+        );
+        $this->assertEquals('Received funds from user@test.com to receiver@test.com', $transferDescription);
+
+        // Test user withdrawal description
+        $withdrawalDescription = $this->service->generateOrderDescription(
+            OrderType::USER_WITHDRAWAL,
+            $targetUser,
+            null,
+            101
+        );
+        $this->assertEquals('User withdrawal request by user@test.com - Order #101', $withdrawalDescription);
+
+        // Test custom description takes precedence
+        $customDescription = $this->service->generateOrderDescription(
+            OrderType::ADMIN_TOP_UP,
+            $targetUser,
+            null,
+            123,
+            'Custom description provided'
+        );
+        $this->assertEquals('Custom description provided', $customDescription);
+    }
+
+    public function test_admin_top_up_uses_generated_description(): void
+    {
+        Event::fake();
+        $adminUser = User::factory()->create(['email' => 'admin@test.com']);
+        $targetUser = User::factory()->create(['email' => 'user@test.com']);
+
+        $data = [
+            'title' => 'Admin Top-up',
+            'amount' => 100,
+            'top_up_provider_id' => $this->provider->id,
+        ];
+
+        $order = $this->service->createAdminTopUp($targetUser, $data, $adminUser);
+
+        $this->assertStringContainsString('Admin top-up for user@test.com', $order->description);
+        $this->assertStringContainsString("Order #{$order->id}", $order->description);
+    }
+
     public function test_can_create_top_up_order(): void
     {
         Event::fake();
@@ -51,6 +122,10 @@ class OrdersServiceTest extends TestCase
         $this->assertEquals(OrderType::USER_TOP_UP, $order->order_type);
         $this->assertEquals(OrderStatus::PENDING_PAYMENT, $order->status);
         $this->assertEquals($this->user->id, $order->user_id);
+        
+        // Test that description is generated correctly for user top-up
+        $this->assertStringContainsString('Order purchased funds', $order->description);
+        $this->assertStringContainsString("#{$order->id}", $order->description);
 
         Event::assertDispatched(OrderCreated::class);
     }

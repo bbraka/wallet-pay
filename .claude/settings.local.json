@@ -57,7 +57,10 @@
       "mcp__filesystem__edit_file",
       "mcp__filesystem__move_file",
       "mcp__mysql__list_databases",
-      "Bash(./vendor/bin/phpunit:*)"
+      "Bash(./vendor/bin/phpunit:*)",
+      "mcp__filesystem__list_directory",
+      "Bash(vendor/bin/phpunit:*)",
+      "Bash(APP_URL=http://localhost:8000 php artisan dusk --filter=test_admin_can_view_transactions_list)"
     ]
   },
   "enableAllProjectMcpServers": true,

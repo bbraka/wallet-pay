@@ -27,13 +27,15 @@ Write a Status Report in the feature/reports folder
 ## Browser Testing with Laravel Dusk
 - Use Laravel Dusk for all browser-based testing (React + Backpack)
 - Chrome runs in Docker container with proper sandbox configuration
-- Test URLs: http://nginx for container-to-container communication
 
-## Puppeteer Testing Setup
-- When testing with Puppeteer MCP server, start a local artisan PHP server first
+## Dusk Testing Setup
+- When testing with Dusk, start a local artisan PHP server first
 - Command: `php artisan serve --host=0.0.0.0 --port=8000 &`
 - Test URLs: http://localhost:8000 for Puppeteer browser automation
 - This ensures proper application access within the container environment
+
+## Grading
+- A feature is not considered complete until all PHP Unit Tests and Dusk Tests Pass at 100%
 
 ## General Project Structure
 

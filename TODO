@@ -1,2 +1,3 @@
-admin crud for orders
-frontend
+fix admin crud showing an error in the transaction controller requesting Backpack Pro. Install https://packagist.org/packages/winex01/backpack-filter and use that instead. Also remake the admin/orders controller as well to use the same package. See feature 008 to find out how the features should look.
+
+run all the dusk tests - verify they complete. if not - debug until they all do.

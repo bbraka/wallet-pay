@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
+use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -79,6 +80,7 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends Model
 {
     use HasFactory;
+    use CrudTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -123,6 +125,14 @@ class Transaction extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Alias for createdBy relationship to match CRUD controller expectations
+     */
+    public function creator()
+    {
+        return $this->createdBy();
     }
 
     /**
@@ -183,5 +193,17 @@ class Transaction extends Model
     public function cancel(): void
     {
         $this->update(['status' => TransactionStatus::CANCELLED]);
+    }
+
+    public function getDeleteButton()
+    {
+        // Only show buttons for manual transactions (created by admin)
+        if (!$this->created_by || $this->order_id) {
+            return '<a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id) . '" data-style="zoom-in"><i class="la la-eye"></i> Show</a>';
+        }
+
+        return '<a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id) . '" data-style="zoom-in"><i class="la la-eye"></i> Show</a>
+                <a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id . '/edit') . '" data-style="zoom-in"><i class="la la-edit"></i> Edit</a>
+                <a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id) . '" data-button-type="delete"><i class="la la-trash"></i> Delete</a>';
     }
 }

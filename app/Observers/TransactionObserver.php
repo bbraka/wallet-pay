@@ -26,8 +26,8 @@ class TransactionObserver
      */
     public function updated(Transaction $transaction): void
     {
-        // Only recalculate if status changed
-        if ($transaction->isDirty('status')) {
+        // Recalculate if status or amount changed
+        if ($transaction->isDirty('status') || $transaction->isDirty('amount')) {
             $this->recalculateUserBalance($transaction);
         }
     }
@@ -46,9 +46,7 @@ class TransactionObserver
     private function recalculateUserBalance(Transaction $transaction): void
     {
         try {
-            $balance = Transaction::where('user_id', $transaction->user_id)
-                ->where('status', TransactionStatus::ACTIVE)
-                ->sum('amount');
+            $balance = $this->walletService->calculateUserBalance($transaction->user);
 
             $transaction->user->update(['wallet_amount' => $balance]);
 
