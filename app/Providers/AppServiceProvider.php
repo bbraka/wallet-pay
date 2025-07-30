@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
 use App\Models\Transaction;
 use App\Observers\TransactionObserver;
+use App\Policies\OrderPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,5 +26,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register model observers
         Transaction::observe(TransactionObserver::class);
+        
+        // Register policies
+        Gate::policy(Order::class, OrderPolicy::class);
     }
 }

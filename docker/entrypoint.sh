@@ -45,15 +45,37 @@ if [ ! -f "vendor/autoload.php" ]; then
     fi
     
     echo "Installing dependencies with optimized settings..."
-    COMPOSER_MEMORY_LIMIT=-1 COMPOSER_PROCESS_TIMEOUT=600 composer install \
-        --no-interaction \
-        --optimize-autoloader \
-        --no-dev \
-        --prefer-dist \
-        --no-progress \
-        --no-suggest
+    # Check if we're in development environment
+    if [ "${APP_ENV:-local}" = "production" ]; then
+        echo "Production environment detected - installing without dev dependencies..."
+        COMPOSER_MEMORY_LIMIT=-1 COMPOSER_PROCESS_TIMEOUT=600 composer install \
+            --no-interaction \
+            --optimize-autoloader \
+            --no-dev \
+            --prefer-dist \
+            --no-progress \
+            --no-suggest
+    else
+        echo "Development environment detected - installing with dev dependencies (includes PHPUnit)..."
+        COMPOSER_MEMORY_LIMIT=-1 COMPOSER_PROCESS_TIMEOUT=600 composer install \
+            --no-interaction \
+            --optimize-autoloader \
+            --prefer-dist \
+            --no-progress \
+            --no-suggest
+    fi
 else
     echo "Composer dependencies already installed"
+    # Ensure dev dependencies are installed in development mode
+    if [ "${APP_ENV:-local}" != "production" ] && [ ! -f "vendor/bin/phpunit" ]; then
+        echo "PHPUnit not found - installing dev dependencies..."
+        COMPOSER_MEMORY_LIMIT=-1 COMPOSER_PROCESS_TIMEOUT=600 composer install \
+            --no-interaction \
+            --optimize-autoloader \
+            --prefer-dist \
+            --no-progress \
+            --no-suggest
+    fi
 fi
 
 # Install NPM dependencies

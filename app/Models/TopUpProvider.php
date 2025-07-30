@@ -5,6 +5,47 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @OA\Schema(
+ *     schema="TopUpProvider",
+ *     type="object",
+ *     required={"name", "code", "is_active", "requires_reference"},
+ *     @OA\Property(
+ *         property="id",
+ *         type="integer",
+ *         format="int64",
+ *         description="Provider ID"
+ *     ),
+ *     @OA\Property(
+ *         property="name",
+ *         type="string",
+ *         maxLength=255,
+ *         description="Provider name"
+ *     ),
+ *     @OA\Property(
+ *         property="code",
+ *         type="string",
+ *         maxLength=50,
+ *         description="Provider code"
+ *     ),
+ *     @OA\Property(
+ *         property="description",
+ *         type="string",
+ *         nullable=true,
+ *         description="Provider description"
+ *     ),
+ *     @OA\Property(
+ *         property="is_active",
+ *         type="boolean",
+ *         description="Whether the provider is active"
+ *     ),
+ *     @OA\Property(
+ *         property="requires_reference",
+ *         type="boolean",
+ *         description="Whether this provider requires a reference"
+ *     )
+ * )
+ */
 class TopUpProvider extends Model
 {
     use HasFactory;
