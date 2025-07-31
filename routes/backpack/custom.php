@@ -21,6 +21,9 @@ Route::group([
     Route::crud('transaction', 'TransactionCrudController');
     Route::post('transaction/check-balance', 'TransactionCrudController@checkBalance');
     
+    // Business Users (read-only)
+    Route::crud('business-user', 'BusinessUserCrudController');
+    
     // Pending Approvals routes
     Route::get('pending-approvals', 'PendingApprovalsController@index')->name('admin.pending-approvals.index');
     Route::get('pending-approvals/data', 'PendingApprovalsController@getPendingData')->name('admin.pending-approvals.data');

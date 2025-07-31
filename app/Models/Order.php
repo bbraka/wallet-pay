@@ -225,4 +225,16 @@ class Order extends Model
     {
         return $this->topUpProvider ? $this->topUpProvider->name : '-';
     }
+
+    /**
+     * Get edit button for Backpack CRUD - only show for pending orders
+     */
+    public function getEditButton()
+    {
+        if ($this->status === OrderStatus::PENDING_PAYMENT) {
+            return '<a class="btn btn-sm btn-link" href="' . backpack_url('order/' . $this->id . '/edit') . '" data-toggle="tooltip" title="Edit this entry"><i class="la la-edit"></i></a>';
+        }
+        
+        return '<span class="btn btn-sm btn-link disabled text-muted" data-toggle="tooltip" title="Only pending orders can be edited"><i class="la la-ban"></i></span>';
+    }
 }

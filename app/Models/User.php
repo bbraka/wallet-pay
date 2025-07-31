@@ -76,6 +76,17 @@ class User extends Authenticatable
     use CrudTrait, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
+     * Define which columns should be shown in Backpack operations
+     * This will make wallet_amount visible in the show page
+     */
+    protected $identifiableAttribute = 'email';
+    
+    /**
+     * Define the columns that should be searchable in CRUD operations
+     */
+    public static $searchableFields = ['name', 'email'];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -134,5 +145,22 @@ class User extends Authenticatable
     public function createdTransactions()
     {
         return $this->hasMany(Transaction::class, 'created_by');
+    }
+
+    /**
+     * Get wallet amount formatted for display
+     * This method can be used by Backpack to show the wallet amount
+     */
+    public function getWalletAmountAttribute($value)
+    {
+        return $value;
+    }
+
+    /**
+     * Get formatted wallet balance for display in Backpack
+     */
+    public function getWalletBalanceAttribute()
+    {
+        return '$' . number_format($this->wallet_amount, 2);
     }
 }

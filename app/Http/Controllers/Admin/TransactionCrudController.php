@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\Admin\TransactionService;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
-use Winex01\BackpackFilter\Http\Controllers\Operations\ExportOperation;
 use Winex01\BackpackFilter\Http\Controllers\Operations\FilterOperation;
 use Prologue\Alerts\Facades\Alert;
 use Illuminate\Support\Str;
@@ -28,7 +27,6 @@ class TransactionCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use FilterOperation;
-    use ExportOperation;
 
     protected TransactionService $transactionService;
 
@@ -42,7 +40,7 @@ class TransactionCrudController extends CrudController
         CRUD::setModel(\App\Models\Transaction::class);
         CRUD::setRoute(config('backpack.base.route_prefix') . '/transaction');
         CRUD::setEntityNameStrings('transaction', 'transactions');
-        
+
         $this->transactionService = app(TransactionService::class);
     }
 
@@ -66,13 +64,19 @@ class TransactionCrudController extends CrudController
         CRUD::column([
             'name' => 'type',
             'label' => 'Type',
-            'type' => 'enum',
+            'type' => 'string',
+            'value' => function ($entry) {
+                return $entry->type->label();
+            }
         ]);
 
         CRUD::column([
             'name' => 'status',
             'label' => 'Status',
-            'type' => 'enum',
+            'type' => 'string',
+            'value' => function ($entry) {
+                return $entry->status->label();
+            }
         ]);
 
         CRUD::column([
@@ -87,11 +91,11 @@ class TransactionCrudController extends CrudController
             'name' => 'description_excerpt',
             'label' => 'Description',
             'type' => 'text',
-            'value' => function($entry) {
+            'value' => function ($entry) {
                 return \Str::limit($entry->description, 50);
             },
             'searchLogic' => function ($query, $column, $searchTerm) {
-                $query->orWhere('description', 'like', '%'.$searchTerm.'%');
+                $query->orWhere('description', 'like', '%' . $searchTerm . '%');
             }
         ]);
 
@@ -99,19 +103,19 @@ class TransactionCrudController extends CrudController
             'name' => 'user_info',
             'label' => 'User',
             'type' => 'custom_html',
-            'value' => function($entry) {
+            'value' => function ($entry) {
                 if (!$entry->user) return '-';
                 return sprintf(
                     '<a href="%s">%s<br><small>%s</small></a>',
-                    backpack_url('user/'.$entry->user->id.'/show'),
+                    backpack_url('business-user/' . $entry->user->id . '/show'),
                     e($entry->user->name),
                     e($entry->user->email)
                 );
             },
             'searchLogic' => function ($query, $column, $searchTerm) {
                 $query->orWhereHas('user', function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', '%'.$searchTerm.'%')
-                      ->orWhere('email', 'like', '%'.$searchTerm.'%');
+                    $q->where('name', 'like', '%' . $searchTerm . '%')
+                        ->orWhere('email', 'like', '%' . $searchTerm . '%');
                 });
             }
         ]);
@@ -120,17 +124,18 @@ class TransactionCrudController extends CrudController
             'name' => 'creator_info',
             'label' => 'Created By',
             'type' => 'custom_html',
-            'value' => function($entry) {
+            'value' => function ($entry) {
                 if (!$entry->creator) return 'System';
                 return sprintf(
-                    '<a href="%s">%s</a>',
-                    backpack_url('user/'.$entry->creator->id.'/show'),
+                    '<a href="%s">%s<br><small>%s</small></a>',
+                    backpack_url('business-user/' . $entry->creator->id . '/show'),
+                    e($entry->creator->name),
                     e($entry->creator->email)
                 );
             },
             'searchLogic' => function ($query, $column, $searchTerm) {
                 $query->orWhereHas('creator', function ($q) use ($searchTerm) {
-                    $q->where('email', 'like', '%'.$searchTerm.'%');
+                    $q->where('email', 'like', '%' . $searchTerm . '%');
                 });
             }
         ]);
@@ -139,11 +144,11 @@ class TransactionCrudController extends CrudController
             'name' => 'order_link',
             'label' => 'Order',
             'type' => 'custom_html',
-            'value' => function($entry) {
+            'value' => function ($entry) {
                 if (!$entry->order_id) return '-';
                 return sprintf(
                     '<a href="%s">#%d</a>',
-                    backpack_url('order/'.$entry->order_id.'/show'),
+                    backpack_url('order/' . $entry->order_id . '/show'),
                     $entry->order_id
                 );
             },
@@ -165,8 +170,11 @@ class TransactionCrudController extends CrudController
 
     protected function setupButtons()
     {
-        // Remove delete button for system transactions
-        CRUD::addButtonFromModelFunction('line', 'delete', 'getDeleteButton', 'end');
+        // Remove delete button for system transactions (those without created_by or with order_id)
+        CRUD::addButtonFromModelFunction('line', 'delete', 'getConditionalDeleteButton', 'end');
+
+        // Remove the default delete button since we're using a custom one
+        CRUD::removeButton('delete');
     }
 
     /**
@@ -218,6 +226,16 @@ class TransactionCrudController extends CrudController
             'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
 
+        // User filter
+        CRUD::field([
+            'name' => 'user_id',
+            'label' => 'User',
+            'type' => 'select_from_array',
+            'options' => [null => 'All Users'] + User::pluck('email', 'id')->toArray(),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
         // Order ID filter
         CRUD::field([
             'name' => 'order_id',
@@ -262,6 +280,11 @@ class TransactionCrudController extends CrudController
         if ($request->has('order_id') && $request->get('order_id') !== null) {
             CRUD::addClause('where', 'order_id', $request->get('order_id'));
         }
+
+        // User ID filter (for filtering transactions by specific user)
+        if ($request->has('user_id') && $request->get('user_id') !== null) {
+            CRUD::addClause('where', 'user_id', $request->get('user_id'));
+        }
     }
 
     /**
@@ -301,10 +324,9 @@ class TransactionCrudController extends CrudController
             'prefix' => '$',
             'attributes' => [
                 'step' => '0.01',
-                'min' => '0.01',
             ],
             'wrapper' => ['class' => 'form-group col-md-6'],
-            'hint' => 'Enter positive amount. It will be automatically adjusted based on type.',
+            'hint' => 'Amount will be positive for credits, negative for debits.',
         ]);
 
         CRUD::field([
@@ -331,19 +353,24 @@ class TransactionCrudController extends CrudController
                     var $typeSelect = $("[name=type]");
                     var $amountInput = $("[name=amount]");
                     
-                    // Force positive input
-                    $amountInput.on("input", function() {
-                        var value = parseFloat($(this).val());
-                        if (value < 0) {
-                            $(this).val(Math.abs(value));
+                    // Auto-adjust amount sign based on transaction type
+                    function adjustAmountSign() {
+                        var type = $typeSelect.val();
+                        var amount = parseFloat($amountInput.val()) || 0;
+                        var absAmount = Math.abs(amount);
+                        
+                        if (type === "credit") {
+                            $amountInput.val(absAmount);
+                        } else if (type === "debit") {
+                            $amountInput.val(-absAmount);
                         }
-                    });
+                    }
                     
                     // Check balance for debit transactions
                     function checkBalance() {
                         var userId = $userSelect.val();
                         var type = $typeSelect.val();
-                        var amount = parseFloat($amountInput.val());
+                        var amount = Math.abs(parseFloat($amountInput.val()) || 0);
                         
                         if (userId && type === "debit" && amount > 0) {
                             $.ajax({
@@ -360,16 +387,22 @@ class TransactionCrudController extends CrudController
                                             type: "error",
                                             text: "Insufficient balance. User has $" + response.balance.toFixed(2)
                                         }).show();
-                                        $amountInput.val(response.balance);
+                                        $amountInput.val(type === "debit" ? -response.balance : response.balance);
                                     }
                                 }
                             });
                         }
                     }
                     
-                    $typeSelect.on("change", checkBalance);
+                    $typeSelect.on("change", function() {
+                        adjustAmountSign();
+                        checkBalance();
+                    });
                     $amountInput.on("blur", checkBalance);
                     $userSelect.on("change", checkBalance);
+                    
+                    // Set initial amount sign on page load
+                    adjustAmountSign();
                 });
             </script>'
         ]);
@@ -384,13 +417,23 @@ class TransactionCrudController extends CrudController
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
-        
+
         // Disable editing certain fields
         CRUD::field('user_id')->attributes(['disabled' => 'disabled']);
-        CRUD::field('type')->attributes(['disabled' => 'disabled']);
-        
-        // Check if transaction can be edited
+
+        // Get current entry to set the amount with proper sign
         $entry = CRUD::getCurrentEntry();
+
+        // Set amount field with proper sign based on transaction type
+        if ($entry) {
+            $displayAmount = $entry->type->value === 'credit' ? abs($entry->amount) : -abs($entry->amount);
+            CRUD::field('amount')->attributes([
+                'step' => '0.01',
+                'value' => $displayAmount,
+            ]);
+        }
+
+        // Check if transaction can be edited
         if ($entry && !$entry->created_by) {
             CRUD::denyAccess('update');
             abort(403, 'System-generated transactions cannot be modified.');
@@ -406,16 +449,19 @@ class TransactionCrudController extends CrudController
     {
         $this->crud->setRequest($this->crud->validateRequest());
         $request = $this->crud->getRequest();
-        
+
         $adminUser = backpack_user();
-        
+
         $data = $request->only(['user_id', 'type', 'amount', 'description']);
-        
+
+        // Ensure amount is always positive (the service uses type to determine sign)
+        $data['amount'] = abs($data['amount']);
+
         try {
             $transaction = $this->transactionService->createManualTransaction($data, $adminUser);
-            
+
             Alert::success('Transaction created successfully.')->flash();
-            
+
             return $this->crud->performSaveAction($transaction->id);
         } catch (\Exception $e) {
             Alert::error($e->getMessage())->flash();
@@ -433,14 +479,17 @@ class TransactionCrudController extends CrudController
         $this->crud->setRequest($this->crud->validateRequest());
         $request = $this->crud->getRequest();
         $entry = $this->crud->getCurrentEntry();
-        
-        $data = $request->only(['amount', 'description']);
-        
+
+        $data = $request->only(['type', 'amount', 'description']);
+
+        // Ensure amount is always positive (the service uses type to determine sign)
+        $data['amount'] = abs($data['amount']);
+
         try {
             $transaction = $this->transactionService->updateTransaction($entry, $data);
-            
+
             Alert::success('Transaction updated successfully.')->flash();
-            
+
             return $this->crud->performSaveAction($transaction->id);
         } catch (\Exception $e) {
             Alert::error($e->getMessage())->flash();
@@ -457,14 +506,14 @@ class TransactionCrudController extends CrudController
     public function destroy($id)
     {
         $this->crud->hasAccessOrFail('delete');
-        
+
         $entry = $this->crud->getEntry($id);
-        
+
         if (!$this->transactionService->canDeleteTransaction($entry)) {
             Alert::error('Only manual transactions can be deleted.')->flash();
             return redirect()->back();
         }
-        
+
         return $this->crud->delete($id);
     }
 
@@ -475,16 +524,119 @@ class TransactionCrudController extends CrudController
     {
         $userId = request()->input('user_id');
         $amount = request()->input('amount');
-        
+
         $user = User::find($userId);
-        
+
         if (!$user) {
             return response()->json(['sufficient' => false, 'balance' => 0]);
         }
-        
+
         return response()->json([
             'sufficient' => $user->wallet_amount >= $amount,
             'balance' => $user->wallet_amount
+        ]);
+    }
+
+    /**
+     * Define what happens when the Show operation is loaded.
+     * 
+     * @see https://backpackforlaravel.com/docs/crud-operation-show
+     * @return void
+     */
+    protected function setupShowOperation()
+    {
+        CRUD::column([
+            'name' => 'id',
+            'label' => 'ID',
+            'type' => 'number',
+        ]);
+
+        CRUD::column([
+            'name' => 'type',
+            'label' => 'Type',
+            'type' => 'text',
+            'value' => function ($entry) {
+                return $entry->type->label();
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'status',
+            'label' => 'Status',
+            'type' => 'text',
+            'value' => function ($entry) {
+                return $entry->status->label();
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'amount',
+            'label' => 'Amount',
+            'type' => 'number',
+            'prefix' => '$',
+            'decimals' => 2,
+        ]);
+
+        CRUD::column([
+            'name' => 'user_info',
+            'label' => 'User',
+            'type' => 'custom_html',
+            'value' => function ($entry) {
+                if (!$entry->user) return '-';
+                return sprintf(
+                    '<strong>%s</strong><br><small>%s</small>',
+                    e($entry->user->name),
+                    e($entry->user->email)
+                );
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'creator_info',
+            'label' => 'Created By',
+            'type' => 'custom_html',
+            'value' => function ($entry) {
+                if (!$entry->creator) return 'System';
+                return sprintf(
+                    '<strong>%s</strong><br><small>%s</small>',
+                    e($entry->creator->name),
+                    e($entry->creator->email)
+                );
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'order_link',
+            'label' => 'Related Order',
+            'type' => 'custom_html',
+            'value' => function ($entry) {
+                if (!$entry->order_id) return '-';
+                return sprintf(
+                    '<a href="%s" class="btn btn-sm btn-outline-primary">Order #%d</a>',
+                    backpack_url('order/' . $entry->order_id . '/show'),
+                    $entry->order_id
+                );
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'description',
+            'label' => 'Description',
+            'type' => 'textarea',
+        ]);
+
+        CRUD::column([
+            'name' => 'created_at',
+            'label' => 'Created At',
+            'type' => 'datetime',
+            'format' => 'Y-m-d H:i:s'
+        ]);
+
+        CRUD::column([
+            'name' => 'updated_at',
+            'label' => 'Updated At',
+            'type' => 'datetime',
+            'format' => 'Y-m-d H:i:s'
         ]);
     }
 }

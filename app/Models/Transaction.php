@@ -195,15 +195,13 @@ class Transaction extends Model
         $this->update(['status' => TransactionStatus::CANCELLED]);
     }
 
-    public function getDeleteButton()
+    public function getConditionalDeleteButton()
     {
-        // Only show buttons for manual transactions (created by admin)
+        // Only show delete button for manual transactions (created by admin and not linked to orders)
         if (!$this->created_by || $this->order_id) {
-            return '<a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id) . '" data-style="zoom-in"><i class="la la-eye"></i> Show</a>';
+            return ''; // No delete button for system transactions or order-linked transactions
         }
 
-        return '<a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id) . '" data-style="zoom-in"><i class="la la-eye"></i> Show</a>
-                <a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id . '/edit') . '" data-style="zoom-in"><i class="la la-edit"></i> Edit</a>
-                <a class="btn btn-sm btn-link" href="' . url(config('backpack.base.route_prefix', 'admin') . '/transaction/' . $this->id) . '" data-button-type="delete"><i class="la la-trash"></i> Delete</a>';
+        return '<a class="btn btn-sm btn-link" href="' . backpack_url('transaction/' . $this->id) . '" data-button-type="delete" onclick="return confirm(\'Are you sure you want to delete this transaction?\')" title="Delete transaction"><i class="la la-trash"></i> Delete</a>';
     }
 }

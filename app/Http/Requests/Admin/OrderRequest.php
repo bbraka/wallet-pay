@@ -38,7 +38,7 @@ class OrderRequest extends FormRequest
                 Rule::exists('top_up_providers', 'id')->where('is_active', true),
             ],
             'title' => [
-                'required',
+                'nullable',
                 'string',
                 'max:255',
             ],

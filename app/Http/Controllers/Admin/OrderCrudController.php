@@ -14,7 +14,6 @@ use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
-use Winex01\BackpackFilter\Http\Controllers\Operations\ExportOperation;
 use Winex01\BackpackFilter\Http\Controllers\Operations\FilterOperation;
 use Prologue\Alerts\Facades\Alert;
 
@@ -31,7 +30,6 @@ class OrderCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use FilterOperation;
-    use ExportOperation;
 
     protected OrdersService $ordersService;
     protected OrderService $orderService;
@@ -78,13 +76,19 @@ class OrderCrudController extends CrudController
         CRUD::column([
             'name' => 'status',
             'label' => 'Status',
-            'type' => 'enum',
+            'type' => 'string',
+            'value' => function($entry) {
+                return $entry->status->label();
+            }
         ]);
 
         CRUD::column([
             'name' => 'order_type',
             'label' => 'Type',
-            'type' => 'enum',
+            'type' => 'string',
+            'value' => function($entry) {
+                return $entry->order_type->label();
+            }
         ]);
 
         CRUD::column([
@@ -107,7 +111,7 @@ class OrderCrudController extends CrudController
                 if (!$entry->user) return '-';
                 return sprintf(
                     '<a href="%s">%s<br><small>%s</small></a>',
-                    backpack_url('user/'.$entry->user->id.'/show'),
+                    backpack_url('business-user/'.$entry->user->id.'/show'),
                     e($entry->user->name),
                     e($entry->user->email)
                 );
@@ -128,7 +132,7 @@ class OrderCrudController extends CrudController
                 if (!$entry->receiver) return '-';
                 return sprintf(
                     '<a href="%s">%s<br><small>%s</small></a>',
-                    backpack_url('user/'.$entry->receiver->id.'/show'),
+                    backpack_url('business-user/'.$entry->receiver->id.'/show'),
                     e($entry->receiver->name),
                     e($entry->receiver->email)
                 );
@@ -151,6 +155,19 @@ class OrderCrudController extends CrudController
 
         // Apply filter queries
         $this->filterQueries();
+
+        // Setup custom buttons
+        $this->setupListButtons();
+    }
+
+    /**
+     * Setup custom buttons for list operation
+     */
+    protected function setupListButtons()
+    {
+        // Replace the default edit button with conditional one
+        CRUD::removeButton('update'); // Remove default edit button
+        CRUD::addButtonFromModelFunction('line', 'edit', 'getEditButton', 'beginning');
     }
 
     /**
@@ -585,21 +602,19 @@ class OrderCrudController extends CrudController
         CRUD::column([
             'name' => 'status',
             'label' => 'Status',
-            'type' => 'select_from_array',
-            'options' => array_combine(
-                array_column(OrderStatus::cases(), 'value'),
-                array_map(fn($case) => $case->label(), OrderStatus::cases())
-            ),
+            'type' => 'text',
+            'value' => function($entry) {
+                return $entry->status->label();
+            },
         ]);
 
         CRUD::column([
             'name' => 'order_type',
             'label' => 'Type',
-            'type' => 'select_from_array',
-            'options' => array_combine(
-                array_column(OrderType::cases(), 'value'),
-                array_map(fn($case) => $case->label(), OrderType::cases())
-            ),
+            'type' => 'text',
+            'value' => function($entry) {
+                return $entry->order_type->label();
+            },
         ]);
 
         CRUD::column([
