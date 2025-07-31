@@ -62,7 +62,8 @@
       "Bash(vendor/bin/phpunit:*)",
       "Bash(APP_URL=http://localhost:8000 php artisan dusk --filter=test_admin_can_view_transactions_list)",
       "WebFetch(domain:packagist.org)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "mcp__filesystem__read_multiple_files"
     ]
   },
   "enableAllProjectMcpServers": true,

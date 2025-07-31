@@ -32,6 +32,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // First, remove any orders with the new enum values to avoid constraint errors
+        DB::statement("DELETE FROM orders WHERE order_type IN ('user_withdrawal', 'admin_withdrawal')");
+        DB::statement("DELETE FROM orders WHERE status = 'pending_approval'");
+        
         Schema::table('orders', function (Blueprint $table) {
             // Remove payment completion date column
             $table->dropColumn('payment_completion_date');
