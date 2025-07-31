@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { OrdersApi, TopUpProvidersApi } from '../../generated';
+import { OrdersApi, TopUpProvidersApi } from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
 const TopUpPage = () => {
@@ -64,7 +64,7 @@ const TopUpPage = () => {
             return;
         }
 
-        if (selectedProvider?.requires_reference && !formData.provider_reference) {
+        if (selectedProvider?.requiresReference && !formData.provider_reference) {
             setError('Provider reference is required for this payment method');
             return;
         }
@@ -157,7 +157,7 @@ const TopUpPage = () => {
                                         {new Intl.NumberFormat('en-US', {
                                             style: 'currency',
                                             currency: 'USD'
-                                        }).format(user?.wallet_amount || 0)}
+                                        }).format(user?.walletAmount || 0)}
                                     </h4>
                                 </div>
                                 <div className="col-auto">
@@ -243,7 +243,7 @@ const TopUpPage = () => {
                                         disabled={loading}
                                     >
                                         <option value="">Select payment method...</option>
-                                        {providers.filter(p => p.is_active).map(provider => (
+                                        {providers.map(provider => (
                                             <option key={provider.id} value={provider.id}>
                                                 {provider.name}
                                                 {provider.description && ` - ${provider.description}`}
@@ -252,7 +252,7 @@ const TopUpPage = () => {
                                     </select>
                                 </div>
 
-                                {selectedProvider?.requires_reference && (
+                                {selectedProvider?.requiresReference && (
                                     <div className="mb-3">
                                         <label htmlFor="provider_reference" className="form-label">
                                             Payment Reference <span className="text-danger">*</span>

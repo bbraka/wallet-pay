@@ -1,4 +1,4 @@
-import { Configuration } from '../generated';
+import { Configuration } from '../generated/src';
 
 /**
  * API Configuration utility for generated OpenAPI clients

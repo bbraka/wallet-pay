@@ -1,1 +1,3 @@
-remove the quick actions section from the wallet page. the same actions are already visible in the profile menu. you can add the icons and colors from the quick actions to the profile menu. they're cool. move the refresh button to the profile menu as well.
+creating top up orders from frontend errors:
+Either receiver user ID or top-up provider ID is required. (and 1 more error)
+Also - remove admin adjustment as available provider type from frontend

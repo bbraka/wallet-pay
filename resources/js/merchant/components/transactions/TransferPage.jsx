@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { OrdersApi, MerchantAuthenticationApi } from '../../generated';
+import { OrdersApi, MerchantAuthenticationApi } from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
 const TransferPage = () => {
@@ -52,7 +52,7 @@ const TransferPage = () => {
 
     const selectedUser = users.find(u => u.id === parseInt(formData.receiver_user_id));
     const transferAmount = parseFloat(formData.amount) || 0;
-    const currentBalance = parseFloat(user?.wallet_amount || 0);
+    const currentBalance = parseFloat(user?.walletAmount || 0);
     const balanceAfterTransfer = currentBalance - transferAmount;
 
     const handleSubmit = async (e) => {

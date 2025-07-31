@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { MerchantAuthenticationApi } from '../generated';
+import { MerchantAuthenticationApi } from '../generated/src';
 import { apiConfig } from '../config/api';
 
 const AuthContext = createContext();
@@ -18,8 +18,8 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
-    // Initialize auth API
-    const authApi = new MerchantAuthenticationApi(apiConfig.getConfiguration());
+    // Function to get fresh auth API instance
+    const getAuthApi = () => new MerchantAuthenticationApi(apiConfig.getConfiguration());
     
     useEffect(() => {
         // Check authentication on mount
@@ -28,14 +28,40 @@ export const AuthProvider = ({ children }) => {
                 setLoading(true);
                 
                 if (apiConfig.isAuthenticated()) {
-                    const response = await authApi.getMerchantUser();
-                    if (response.success && response.user) {
-                        setUser(response.user);
-                        setIsAuthenticated(true);
-                    } else {
-                        apiConfig.setToken(null);
-                        setIsAuthenticated(false);
-                        setUser(null);
+                    try {
+                        // Try to get fresh user data from API
+                        const response = await getAuthApi().getMerchantUser();
+                        if (response.success && response.user) {
+                            // Update localStorage with fresh data
+                            localStorage.setItem('auth_user', JSON.stringify(response.user));
+                            setUser(response.user);
+                            setIsAuthenticated(true);
+                        } else {
+                            throw new Error('API returned unsuccessful response');
+                        }
+                    } catch (apiErr) {
+                        console.error('API call failed, trying localStorage:', apiErr);
+                        // If API call fails, try to load user from localStorage
+                        const storedUser = localStorage.getItem('auth_user');
+                        if (storedUser) {
+                            try {
+                                const parsedUser = JSON.parse(storedUser);
+                                setUser(parsedUser);
+                                setIsAuthenticated(true);
+                            } catch (parseErr) {
+                                console.error('Failed to parse stored user data:', parseErr);
+                                // Clear invalid data
+                                localStorage.removeItem('auth_user');
+                                apiConfig.setToken(null);
+                                setIsAuthenticated(false);
+                                setUser(null);
+                            }
+                        } else {
+                            // No stored user data, clear authentication
+                            apiConfig.setToken(null);
+                            setIsAuthenticated(false);
+                            setUser(null);
+                        }
                     }
                 } else {
                     setIsAuthenticated(false);
@@ -59,15 +85,25 @@ export const AuthProvider = ({ children }) => {
             setLoading(true);
             setError(null);
             
-            const response = await authApi.merchantLogin({
+            const response = await getAuthApi().merchantLogin({
                 loginRequest: credentials
             });
             
-            if (response.success && response.token) {
-                apiConfig.setToken(response.token);
-                setUser(response.user);
-                setIsAuthenticated(true);
-                return { success: true, user: response.user };
+            console.log('Login response:', response);
+            
+            if (response.success) {
+                // The token field is not in the TypeScript interface but exists in the actual response
+                const token = response.token;
+                if (token) {
+                    apiConfig.setToken(token);
+                    // Store user data in localStorage
+                    localStorage.setItem('auth_user', JSON.stringify(response.user));
+                    setUser(response.user);
+                    setIsAuthenticated(true);
+                    return { success: true, user: response.user };
+                } else {
+                    throw new Error('No token received from server');
+                }
             } else {
                 throw new Error(response.message || 'Login failed');
             }
@@ -85,11 +121,12 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             setLoading(true);
-            await authApi.merchantLogout();
+            await getAuthApi().merchantLogout();
         } catch (err) {
             console.error('Logout error:', err);
         } finally {
             apiConfig.setToken(null);
+            localStorage.removeItem('auth_user');
             setIsAuthenticated(false);
             setUser(null);
             setLoading(false);

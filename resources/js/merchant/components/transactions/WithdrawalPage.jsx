@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { OrdersApi } from '../../generated';
+import { OrdersApi } from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
 const WithdrawalPage = () => {
@@ -28,7 +28,7 @@ const WithdrawalPage = () => {
     };
 
     const withdrawalAmount = parseFloat(formData.amount) || 0;
-    const currentBalance = parseFloat(user?.wallet_amount || 0);
+    const currentBalance = parseFloat(user?.walletAmount || 0);
     const balanceAfterWithdrawal = currentBalance - withdrawalAmount;
 
     const handleSubmit = async (e) => {

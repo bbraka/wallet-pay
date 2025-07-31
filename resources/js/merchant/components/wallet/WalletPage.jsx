@@ -1,10 +1,11 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { OrdersApi } from '../../generated';
+import { OrdersApi, MerchantAuthenticationApi } from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
 const WalletPage = forwardRef((props, ref) => {
     const { user } = useAuth();
+    const [currentUser, setCurrentUser] = useState(user);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -17,13 +18,30 @@ const WalletPage = forwardRef((props, ref) => {
     });
 
     useEffect(() => {
+        loadUserData();
         loadOrders();
     }, []);
 
     // Expose refresh function to parent component
     useImperativeHandle(ref, () => ({
-        refreshData: () => loadOrders()
+        refreshData: () => {
+            loadUserData();
+            loadOrders();
+        }
     }));
+
+    const loadUserData = async () => {
+        try {
+            const authApi = new MerchantAuthenticationApi(apiConfig.getConfiguration());
+            const response = await authApi.getMerchantUser();
+            
+            if (response.success) {
+                setCurrentUser(response.user);
+            }
+        } catch (err) {
+            console.error('Failed to load user data:', err);
+        }
+    };
 
     const loadOrders = async (filterParams = {}) => {
         try {
@@ -144,7 +162,7 @@ const WalletPage = forwardRef((props, ref) => {
                             <div className="d-flex align-items-center">
                                 <div className="flex-grow-1">
                                     <h5 className="card-title mb-0">Wallet Balance</h5>
-                                    <h2 className="mb-0">{formatAmount(user?.wallet_amount || 0)}</h2>
+                                    <h2 className="mb-0">{formatAmount(currentUser?.walletAmount || 0)}</h2>
                                 </div>
                                 <div className="ml-3">
                                     <i className="fas fa-wallet fa-2x opacity-75"></i>
@@ -314,7 +332,7 @@ const WalletPage = forwardRef((props, ref) => {
                                                     </td>
                                                     <td>
                                                         <span className="badge badge-light">
-                                                            {getOrderTypeDisplay(order.orderType || order.order_type)}
+                                                            {getOrderTypeDisplay(order.orderType)}
                                                         </span>
                                                     </td>
                                                     <td className="font-weight-bold">
@@ -327,7 +345,7 @@ const WalletPage = forwardRef((props, ref) => {
                                                     </td>
                                                     <td>
                                                         <small>
-                                                            {formatDate(order.createdAt || order.created_at)}
+                                                            {formatDate(order.createdAt)}
                                                         </small>
                                                     </td>
                                                     <td>
