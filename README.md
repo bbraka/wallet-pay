@@ -69,7 +69,7 @@ php artisan l5-swagger:generate
 
 1. **Start the application**
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Install dependencies**

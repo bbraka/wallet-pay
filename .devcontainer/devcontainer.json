@@ -45,7 +45,7 @@
     }
   },
   
-  "initializeCommand": "docker-compose down",
+  "initializeCommand": "docker compose down",
   "remoteUser": "root",
   
   "mounts": [

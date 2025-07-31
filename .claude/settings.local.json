@@ -60,7 +60,9 @@
       "Bash(./vendor/bin/phpunit:*)",
       "mcp__filesystem__list_directory",
       "Bash(vendor/bin/phpunit:*)",
-      "Bash(APP_URL=http://localhost:8000 php artisan dusk --filter=test_admin_can_view_transactions_list)"
+      "Bash(APP_URL=http://localhost:8000 php artisan dusk --filter=test_admin_can_view_transactions_list)",
+      "WebFetch(domain:packagist.org)",
+      "Bash(kill:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

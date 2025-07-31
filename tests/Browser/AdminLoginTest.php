@@ -15,16 +15,16 @@ class AdminLoginTest extends DuskTestCase
     public function testAdminLoginAndPermissionPage()
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('http://nginx/admin/login')
+            $browser->visit('/admin/login')
                     ->waitFor('input[name="email"]')
-                    ->type('email', 'admin@example.com')
+                    ->type('email', 'admin@example.com')  
                     ->type('password', 'password')
                     ->press('Login')
                     ->waitForLocation('/admin/dashboard')
                     ->assertSee('Dashboard');
 
             // Navigate to permissions page
-            $browser->visit('http://nginx/admin/permission')
+            $browser->visit('/admin/permission')
                     ->waitFor('#crudTable', 10);
 
             // Check for JavaScript errors in console

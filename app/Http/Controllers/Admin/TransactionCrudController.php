@@ -10,6 +10,10 @@ use App\Models\User;
 use App\Services\Admin\TransactionService;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Winex01\BackpackFilter\Http\Controllers\Operations\ExportOperation;
+use Winex01\BackpackFilter\Http\Controllers\Operations\FilterOperation;
+use Prologue\Alerts\Facades\Alert;
+use Illuminate\Support\Str;
 
 /**
  * Class TransactionCrudController
@@ -23,6 +27,8 @@ class TransactionCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
+    use FilterOperation;
+    use ExportOperation;
 
     protected TransactionService $transactionService;
 
@@ -150,76 +156,112 @@ class TransactionCrudController extends CrudController
             'format' => 'Y-m-d H:i:s'
         ]);
 
-        // Filters
-        $this->setupFilters();
+        // Apply filter queries
+        $this->filterQueries();
 
         // Custom buttons
         $this->setupButtons();
-    }
-
-    protected function setupFilters()
-    {
-        // Type filter
-        CRUD::filter('type')
-            ->type('dropdown')
-            ->label('Type')
-            ->values(array_combine(
-                array_column(TransactionType::cases(), 'value'),
-                array_map(fn($case) => $case->label(), TransactionType::cases())
-            ))
-            ->whenActive(function($value) {
-                CRUD::addClause('where', 'type', $value);
-            });
-
-        // Status filter
-        CRUD::filter('status')
-            ->type('dropdown')
-            ->label('Status')
-            ->values(array_combine(
-                array_column(TransactionStatus::cases(), 'value'),
-                array_map(fn($case) => $case->label(), TransactionStatus::cases())
-            ))
-            ->whenActive(function($value) {
-                CRUD::addClause('where', 'status', $value);
-            });
-
-        // Date range filter
-        CRUD::filter('date_range')
-            ->type('date_range')
-            ->label('Date Range')
-            ->whenActive(function ($value) {
-                $dates = json_decode($value);
-                CRUD::addClause('where', 'created_at', '>=', $dates->from);
-                CRUD::addClause('where', 'created_at', '<=', $dates->to . ' 23:59:59');
-            });
-
-        // Created by filter
-        CRUD::filter('created_by')
-            ->type('select2_ajax')
-            ->label('Created By')
-            ->placeholder('Select a user')
-            ->minimum_input_length(2)
-            ->paginate(20)
-            ->method('POST')
-            ->select_attribute('email')
-            ->select_ajax_route('admin/order/search-users')
-            ->whenActive(function($value) {
-                CRUD::addClause('where', 'created_by', $value);
-            });
-
-        // Order ID filter
-        CRUD::filter('order_id')
-            ->type('text')
-            ->label('Order ID')
-            ->whenActive(function($value) {
-                CRUD::addClause('where', 'order_id', $value);
-            });
     }
 
     protected function setupButtons()
     {
         // Remove delete button for system transactions
         CRUD::addButtonFromModelFunction('line', 'delete', 'getDeleteButton', 'end');
+    }
+
+    /**
+     * Setup filter operation using winex01/backpack-filter
+     */
+    protected function setupFilterOperation()
+    {
+        // Type filter
+        CRUD::field([
+            'name' => 'type',
+            'type' => 'select_from_array',
+            'label' => 'Type',
+            'options' => array_combine(
+                array_column(TransactionType::cases(), 'value'),
+                array_map(fn($case) => $case->label(), TransactionType::cases())
+            ),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Status filter
+        CRUD::field([
+            'name' => 'status',
+            'type' => 'select_from_array',
+            'label' => 'Status',
+            'options' => array_combine(
+                array_column(TransactionStatus::cases(), 'value'),
+                array_map(fn($case) => $case->label(), TransactionStatus::cases())
+            ),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Date range filter
+        CRUD::field([
+            'name' => 'date_range',
+            'type' => 'date_range',
+            'label' => 'Date Range',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Created by filter
+        CRUD::field([
+            'name' => 'created_by',
+            'label' => 'Created By',
+            'type' => 'select_from_array',
+            'options' => [null => 'All Creators'] + User::pluck('email', 'id')->toArray(),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Order ID filter
+        CRUD::field([
+            'name' => 'order_id',
+            'type' => 'number',
+            'label' => 'Order ID',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+    }
+
+    /**
+     * Apply filter queries
+     */
+    protected function filterQueries()
+    {
+        $request = request();
+
+        // Type filter
+        if ($request->has('type') && $request->get('type') !== null) {
+            CRUD::addClause('where', 'type', $request->get('type'));
+        }
+
+        // Status filter
+        if ($request->has('status') && $request->get('status') !== null) {
+            CRUD::addClause('where', 'status', $request->get('status'));
+        }
+
+        // Date range filter
+        if ($request->has('date_range') && $request->get('date_range') !== null) {
+            $dates = explode(' - ', $request->get('date_range'));
+            if (count($dates) == 2) {
+                CRUD::addClause('where', 'created_at', '>=', $dates[0]);
+                CRUD::addClause('where', 'created_at', '<=', $dates[1] . ' 23:59:59');
+            }
+        }
+
+        // Created by filter
+        if ($request->has('created_by') && $request->get('created_by') !== null) {
+            CRUD::addClause('where', 'created_by', $request->get('created_by'));
+        }
+
+        // Order ID filter
+        if ($request->has('order_id') && $request->get('order_id') !== null) {
+            CRUD::addClause('where', 'order_id', $request->get('order_id'));
+        }
     }
 
     /**
@@ -236,13 +278,8 @@ class TransactionCrudController extends CrudController
         CRUD::field([
             'name' => 'user_id',
             'label' => 'User',
-            'type' => 'select2',
-            'entity' => 'user',
-            'model' => User::class,
-            'attribute' => 'email',
-            'options' => (function ($query) {
-                return $query->orderBy('email', 'ASC')->get();
-            }),
+            'type' => 'select_from_array',
+            'options' => User::pluck('email', 'id')->toArray(),
             'wrapper' => ['class' => 'form-group col-md-12'],
         ]);
 
@@ -377,11 +414,11 @@ class TransactionCrudController extends CrudController
         try {
             $transaction = $this->transactionService->createManualTransaction($data, $adminUser);
             
-            \Alert::success('Transaction created successfully.')->flash();
+            Alert::success('Transaction created successfully.')->flash();
             
             return $this->crud->performSaveAction($transaction->id);
         } catch (\Exception $e) {
-            \Alert::error($e->getMessage())->flash();
+            Alert::error($e->getMessage())->flash();
             return redirect()->back()->withInput();
         }
     }
@@ -402,11 +439,11 @@ class TransactionCrudController extends CrudController
         try {
             $transaction = $this->transactionService->updateTransaction($entry, $data);
             
-            \Alert::success('Transaction updated successfully.')->flash();
+            Alert::success('Transaction updated successfully.')->flash();
             
             return $this->crud->performSaveAction($transaction->id);
         } catch (\Exception $e) {
-            \Alert::error($e->getMessage())->flash();
+            Alert::error($e->getMessage())->flash();
             return redirect()->back()->withInput();
         }
     }
@@ -424,7 +461,7 @@ class TransactionCrudController extends CrudController
         $entry = $this->crud->getEntry($id);
         
         if (!$this->transactionService->canDeleteTransaction($entry)) {
-            \Alert::error('Only manual transactions can be deleted.')->flash();
+            Alert::error('Only manual transactions can be deleted.')->flash();
             return redirect()->back();
         }
         

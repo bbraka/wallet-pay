@@ -14,6 +14,9 @@ use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Winex01\BackpackFilter\Http\Controllers\Operations\ExportOperation;
+use Winex01\BackpackFilter\Http\Controllers\Operations\FilterOperation;
+use Prologue\Alerts\Facades\Alert;
 
 /**
  * Class OrderCrudController
@@ -27,6 +30,8 @@ class OrderCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
+    use FilterOperation;
+    use ExportOperation;
 
     protected OrdersService $ordersService;
     protected OrderService $orderService;
@@ -144,42 +149,119 @@ class OrderCrudController extends CrudController
             'decimals' => 2,
         ]);
 
-        // Filters - Using open-source alternatives instead of PRO filters
-        $this->setupOpenSourceFilters();
+        // Apply filter queries
+        $this->filterQueries();
     }
 
-    protected function setupOpenSourceFilters()
+    /**
+     * Setup filter operation using winex01/backpack-filter
+     */
+    protected function setupFilterOperation()
     {
-        // Instead of PRO filters, we'll handle filtering via URL parameters
+        // Status filter
+        CRUD::field([
+            'name' => 'status',
+            'type' => 'select_from_array',
+            'label' => 'Status',
+            'options' => array_combine(
+                array_column(OrderStatus::cases(), 'value'),
+                array_map(fn($case) => $case->label(), OrderStatus::cases())
+            ),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Order type filter
+        CRUD::field([
+            'name' => 'order_type',
+            'type' => 'select_from_array',
+            'label' => 'Type',
+            'options' => array_combine(
+                array_column(OrderType::cases(), 'value'),
+                array_map(fn($case) => $case->label(), OrderType::cases())
+            ),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Provider filter
+        CRUD::field([
+            'name' => 'top_up_provider_id',
+            'label' => 'Provider',
+            'type' => 'select_from_array',
+            'options' => [null => 'All Providers'] + TopUpProvider::pluck('name', 'id')->toArray(),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Date range filter
+        CRUD::field([
+            'name' => 'date_range',
+            'type' => 'date_range',
+            'label' => 'Date Range',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // User filter
+        CRUD::field([
+            'name' => 'user_id',
+            'label' => 'User',
+            'type' => 'select_from_array',
+            'options' => [null => 'All Users'] + User::pluck('email', 'id')->toArray(),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        // Receiver filter
+        CRUD::field([
+            'name' => 'receiver_user_id',
+            'label' => 'Receiver',
+            'type' => 'select_from_array',
+            'options' => [null => 'All Receivers'] + User::pluck('email', 'id')->toArray(),
+            'allows_null' => true,
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+    }
+
+    /**
+     * Apply filter queries
+     */
+    protected function filterQueries()
+    {
         $request = request();
-        
-        // Status filter via URL parameter
-        if ($request->has('status') && $request->get('status') !== '') {
+
+        // Status filter
+        if ($request->has('status') && $request->get('status') !== null) {
             CRUD::addClause('where', 'status', $request->get('status'));
         }
-        
-        // Order type filter via URL parameter
-        if ($request->has('order_type') && $request->get('order_type') !== '') {
+
+        // Order type filter
+        if ($request->has('order_type') && $request->get('order_type') !== null) {
             CRUD::addClause('where', 'order_type', $request->get('order_type'));
         }
-        
-        // Provider filter via URL parameter
-        if ($request->has('provider') && $request->get('provider') !== '') {
+
+        // Provider filter
+        if ($request->has('provider') && $request->get('provider') !== null) {
             CRUD::addClause('where', 'top_up_provider_id', $request->get('provider'));
         }
-        
-        // Date range filter via URL parameters
-        if ($request->has('from') && $request->get('from') !== '') {
-            CRUD::addClause('where', 'created_at', '>=', $request->get('from'));
+
+        // Date range filter
+        if ($request->has('date_range') && $request->get('date_range') !== null) {
+            $dates = explode(' - ', $request->get('date_range'));
+            if (count($dates) == 2) {
+                CRUD::addClause('where', 'created_at', '>=', $dates[0]);
+                CRUD::addClause('where', 'created_at', '<=', $dates[1] . ' 23:59:59');
+            }
         }
-        
-        if ($request->has('to') && $request->get('to') !== '') {
-            CRUD::addClause('where', 'created_at', '<=', $request->get('to') . ' 23:59:59');
-        }
-        
-        // User filter via URL parameter
-        if ($request->has('user_id') && $request->get('user_id') !== '') {
+
+        // User filter
+        if ($request->has('user_id') && $request->get('user_id') !== null) {
             CRUD::addClause('where', 'user_id', $request->get('user_id'));
+        }
+
+        // Receiver filter
+        if ($request->has('receiver_user_id') && $request->get('receiver_user_id') !== null) {
+            CRUD::addClause('where', 'receiver_user_id', $request->get('receiver_user_id'));
         }
     }
 
@@ -204,26 +286,16 @@ class OrderCrudController extends CrudController
         CRUD::field([
             'name' => 'user_id',
             'label' => 'User',
-            'type' => 'select2',
-            'entity' => 'user',
-            'model' => User::class,
-            'attribute' => 'email',
-            'options' => (function ($query) {
-                return $query->orderBy('email', 'ASC')->get();
-            }),
+            'type' => 'select_from_array',
+            'options' => User::pluck('email', 'id')->toArray(),
             'wrapper' => ['class' => 'form-group col-md-12'],
         ]);
 
         CRUD::field([
             'name' => 'top_up_provider_id',
             'label' => 'Top-up Provider',
-            'type' => 'select2',
-            'entity' => 'topUpProvider',
-            'model' => TopUpProvider::class,
-            'attribute' => 'name',
-            'options' => (function ($query) {
-                return $query->where('is_active', true)->orderBy('name', 'ASC')->get();
-            }),
+            'type' => 'select_from_array',
+            'options' => TopUpProvider::where('is_active', true)->pluck('name', 'id')->toArray(),
             'wrapper' => ['class' => 'form-group col-md-12'],
         ]);
 
@@ -241,18 +313,14 @@ class OrderCrudController extends CrudController
             'hint' => 'Maximum amount: $' . number_format(Order::MAX_TOP_UP_AMOUNT, 2),
         ]);
 
-        CRUD::field([
-            'name' => 'title',
-            'label' => 'Title',
-            'type' => 'text',
-            'wrapper' => ['class' => 'form-group col-md-12'],
-        ]);
 
         CRUD::field([
             'name' => 'description',
-            'label' => 'Description',
+            'label' => 'Description (Optional)',
             'type' => 'textarea',
             'wrapper' => ['class' => 'form-group col-md-12'],
+            'hint' => 'Leave empty for auto-generated description',
+            'default' => 'Admin wallet top-up',
         ]);
 
         CRUD::field([
@@ -321,16 +389,19 @@ class OrderCrudController extends CrudController
         $adminUser = backpack_user();
         $targetUser = User::findOrFail($request->input('user_id'));
         
-        $data = $request->only(['title', 'amount', 'description', 'top_up_provider_id', 'provider_reference']);
+        $data = $request->only(['amount', 'description', 'top_up_provider_id', 'provider_reference']);
+        
+        // Auto-generate title for admin top-ups
+        $data['title'] = 'Admin Top-up - ' . $targetUser->email . ' - $' . number_format($data['amount'], 2);
         
         try {
             $order = $this->ordersService->createAdminTopUp($targetUser, $data, $adminUser);
             
-            \Alert::success('Order created successfully.')->flash();
+            Alert::success('Order created successfully.')->flash();
             
             return $this->crud->performSaveAction($order->id);
         } catch (\Exception $e) {
-            \Alert::error($e->getMessage())->flash();
+            Alert::error($e->getMessage())->flash();
             return redirect()->back()->withInput();
         }
     }
@@ -351,11 +422,11 @@ class OrderCrudController extends CrudController
         try {
             $order = $this->ordersService->updateOrder($entry, $data);
             
-            \Alert::success('Order updated successfully.')->flash();
+            Alert::success('Order updated successfully.')->flash();
             
             return $this->crud->performSaveAction($order->id);
         } catch (\Exception $e) {
-            \Alert::error($e->getMessage())->flash();
+            Alert::error($e->getMessage())->flash();
             return redirect()->back()->withInput();
         }
     }
@@ -402,11 +473,11 @@ class OrderCrudController extends CrudController
                 OrderType::ADMIN_WITHDRAWAL
             );
 
-            \Alert::success("Admin withdrawal created successfully. Order ID: #{$order->id}")->flash();
+            Alert::success("Admin withdrawal created successfully. Order ID: #{$order->id}")->flash();
             
             return redirect()->back();
         } catch (\Exception $e) {
-            \Alert::error("Failed to create withdrawal: {$e->getMessage()}")->flash();
+            Alert::error("Failed to create withdrawal: {$e->getMessage()}")->flash();
             return redirect()->back()->withInput();
         }
     }
@@ -418,22 +489,22 @@ class OrderCrudController extends CrudController
     {
         try {
             if (!$order->order_type->isWithdrawal()) {
-                \Alert::error('Order is not a withdrawal order.')->flash();
+                Alert::error('Order is not a withdrawal order.')->flash();
                 return redirect()->back();
             }
 
             if ($order->status !== OrderStatus::PENDING_APPROVAL) {
-                \Alert::error('Order is not pending approval.')->flash();
+                Alert::error('Order is not pending approval.')->flash();
                 return redirect()->back();
             }
 
             $this->orderService->approveWithdrawal($order);
             
-            \Alert::success("Withdrawal #{$order->id} approved successfully.")->flash();
+            Alert::success("Withdrawal #{$order->id} approved successfully.")->flash();
             
             return redirect()->back();
         } catch (\Exception $e) {
-            \Alert::error("Failed to approve withdrawal: {$e->getMessage()}")->flash();
+            Alert::error("Failed to approve withdrawal: {$e->getMessage()}")->flash();
             return redirect()->back();
         }
     }
@@ -449,22 +520,22 @@ class OrderCrudController extends CrudController
 
         try {
             if (!$order->order_type->isWithdrawal()) {
-                \Alert::error('Order is not a withdrawal order.')->flash();
+                Alert::error('Order is not a withdrawal order.')->flash();
                 return redirect()->back();
             }
 
             if ($order->status !== OrderStatus::PENDING_APPROVAL) {
-                \Alert::error('Order is not pending approval.')->flash();
+                Alert::error('Order is not pending approval.')->flash();
                 return redirect()->back();
             }
 
             $this->orderService->denyWithdrawal($order, $request->input('denial_reason'));
             
-            \Alert::success("Withdrawal #{$order->id} denied successfully.")->flash();
+            Alert::success("Withdrawal #{$order->id} denied successfully.")->flash();
             
             return redirect()->back();
         } catch (\Exception $e) {
-            \Alert::error("Failed to deny withdrawal: {$e->getMessage()}")->flash();
+            Alert::error("Failed to deny withdrawal: {$e->getMessage()}")->flash();
             return redirect()->back();
         }
     }

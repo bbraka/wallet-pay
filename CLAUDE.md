@@ -30,7 +30,8 @@ Write a Status Report in the feature/reports folder
 
 ## Dusk Testing Setup
 - When testing with Dusk, start a local artisan PHP server first
-- Command: `php artisan serve --host=0.0.0.0 --port=8000 &`
+- Command: `nohup php artisan serve --host=0.0.0.0 --port=8000 > /dev/null 2>&1 & echo $!`
+- Run it in the background with nohup
 - Test URLs: http://localhost:8000 for Puppeteer browser automation
 - This ensures proper application access within the container environment
 
@@ -178,3 +179,10 @@ The Laravel storage directory requires proper permissions for packages to create
 - Nginx serves the application from a separate container
 - Storage directories are properly initialized during Docker build
 - Volume mounts preserve proper permissions between container rebuilds
+
+# Backpack Filter Package
+This project uses winex01/backpack-filter as a free alternative to Backpack Pro filters. This package provides:
+- Filter functionality for Backpack CRUD operations
+- Export functionality using Laravel Excel
+- Compatible with all standard Backpack fields
+- Supports custom date range filtering
