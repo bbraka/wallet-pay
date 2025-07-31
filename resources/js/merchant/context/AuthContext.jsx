@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import authService from '../services/authService';
+import { MerchantAuthenticationApi } from '../generated';
+import { apiConfig } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -17,41 +18,64 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
+    // Initialize auth API
+    const authApi = new MerchantAuthenticationApi(apiConfig.getConfiguration());
+    
     useEffect(() => {
-        // Initialize auth service and check authentication
-        const initAuth = async () => {
+        // Check authentication on mount
+        const checkAuth = async () => {
             try {
                 setLoading(true);
-                await authService.init();
+                
+                if (apiConfig.isAuthenticated()) {
+                    const response = await authApi.getMerchantUser();
+                    if (response.success && response.user) {
+                        setUser(response.user);
+                        setIsAuthenticated(true);
+                    } else {
+                        apiConfig.setToken(null);
+                        setIsAuthenticated(false);
+                        setUser(null);
+                    }
+                } else {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                }
             } catch (err) {
-                console.error('Auth initialization failed:', err);
-                setError('Authentication initialization failed');
+                console.error('Auth check failed:', err);
+                apiConfig.setToken(null);
+                setIsAuthenticated(false);
+                setUser(null);
             } finally {
                 setLoading(false);
             }
         };
         
-        initAuth();
-        
-        // Listen for auth state changes
-        const unsubscribe = authService.addAuthListener(({ isAuthenticated, user }) => {
-            setIsAuthenticated(isAuthenticated);
-            setUser(user);
-            setError(null);
-        });
-        
-        return unsubscribe;
+        checkAuth();
     }, []);
     
     const login = async (credentials) => {
         try {
             setLoading(true);
             setError(null);
-            const result = await authService.login(credentials);
-            return result;
+            
+            const response = await authApi.merchantLogin({
+                loginRequest: credentials
+            });
+            
+            if (response.success && response.token) {
+                apiConfig.setToken(response.token);
+                setUser(response.user);
+                setIsAuthenticated(true);
+                return { success: true, user: response.user };
+            } else {
+                throw new Error(response.message || 'Login failed');
+            }
         } catch (err) {
-            const errorMessage = err.data?.message || err.message || 'Login failed';
+            const errorMessage = err.message || 'Login failed';
             setError(errorMessage);
+            setIsAuthenticated(false);
+            setUser(null);
             throw new Error(errorMessage);
         } finally {
             setLoading(false);
@@ -61,10 +85,13 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             setLoading(true);
-            await authService.logout();
+            await authApi.merchantLogout();
         } catch (err) {
             console.error('Logout error:', err);
         } finally {
+            apiConfig.setToken(null);
+            setIsAuthenticated(false);
+            setUser(null);
             setLoading(false);
         }
     };

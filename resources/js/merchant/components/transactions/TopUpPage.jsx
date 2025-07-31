@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import apiService from '../../services/apiService';
+import { OrdersApi, TopUpProvidersApi } from '../../generated';
+import { apiConfig } from '../../config/api';
 
 const TopUpPage = () => {
     const { user } = useAuth();
@@ -27,7 +28,8 @@ const TopUpPage = () => {
     const loadProviders = async () => {
         try {
             setLoadingProviders(true);
-            const response = await apiService.getTopUpProviders();
+            const topUpApi = new TopUpProvidersApi(apiConfig.getConfiguration());
+            const response = await topUpApi.getMerchantTopUpProviders();
             setProviders(response || []);
         } catch (err) {
             setError('Failed to load top-up providers');
@@ -79,7 +81,10 @@ const TopUpPage = () => {
                 provider_reference: formData.provider_reference || null
             };
 
-            const response = await apiService.createOrder(orderData);
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            const response = await ordersApi.createMerchantOrder({
+                createMerchantOrderRequest: orderData
+            });
             
             setSuccess(`Top-up order created successfully! Order ID: #${response.id}`);
             

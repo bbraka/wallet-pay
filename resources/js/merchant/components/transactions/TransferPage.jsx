@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import apiService from '../../services/apiService';
+import { OrdersApi, MerchantAuthenticationApi } from '../../generated';
+import { apiConfig } from '../../config/api';
 
 const TransferPage = () => {
     const { user } = useAuth();
@@ -26,7 +27,8 @@ const TransferPage = () => {
     const loadUsers = async () => {
         try {
             setLoadingUsers(true);
-            const response = await apiService.getUsers();
+            const authApi = new MerchantAuthenticationApi(apiConfig.getConfiguration());
+            const response = await authApi.getMerchantUsers();
             // Filter out current user from the list
             const otherUsers = (response.users || []).filter(u => u.id !== user?.id);
             setUsers(otherUsers);
@@ -87,7 +89,10 @@ const TransferPage = () => {
                 receiver_user_id: parseInt(formData.receiver_user_id)
             };
 
-            const response = await apiService.createOrder(orderData);
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            const response = await ordersApi.createMerchantOrder({
+                createMerchantOrderRequest: orderData
+            });
             
             setSuccess(`Transfer order created successfully! Order ID: #${response.id}`);
             

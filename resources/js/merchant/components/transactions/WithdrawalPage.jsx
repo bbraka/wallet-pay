@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import apiService from '../../services/apiService';
+import { OrdersApi } from '../../generated';
+import { apiConfig } from '../../config/api';
 
 const WithdrawalPage = () => {
     const { user } = useAuth();
@@ -57,7 +58,10 @@ const WithdrawalPage = () => {
                 description: formData.description || null
             };
 
-            const response = await apiService.createWithdrawal(withdrawalData);
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            const response = await ordersApi.createMerchantWithdrawal({
+                createMerchantWithdrawalRequest: withdrawalData
+            });
             
             setSuccess(`Withdrawal request created successfully! Order ID: #${response.id}`);
             

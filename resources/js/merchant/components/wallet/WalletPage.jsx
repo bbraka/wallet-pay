@@ -1,6 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import apiService from '../../services/apiService';
+import { OrdersApi } from '../../generated';
+import { apiConfig } from '../../config/api';
 
 const WalletPage = forwardRef((props, ref) => {
     const { user } = useAuth();
@@ -29,7 +30,8 @@ const WalletPage = forwardRef((props, ref) => {
             setLoading(true);
             setError('');
             
-            const response = await apiService.getOrders({
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            const response = await ordersApi.getMerchantOrders({
                 ...filters,
                 ...filterParams
             });
