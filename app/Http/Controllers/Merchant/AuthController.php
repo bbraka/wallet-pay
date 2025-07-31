@@ -23,57 +23,40 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *     path="/api/merchant/login",
+     *     operationId="merchantLogin",
      *     tags={"Merchant Authentication"},
      *     summary="Login to merchant area",
      *     description="Authenticate user and create session for merchant/admin access",
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\JsonContent(
-     *             required={"email", "password"},
-     *             @OA\Property(property="email", type="string", format="email", example="merchant@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="password123"),
-     *             @OA\Property(property="remember", type="boolean", example=false, description="Remember login session")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/LoginRequest")
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Login successful",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Successfully logged in."),
-     *             @OA\Property(property="user", ref="#/components/schemas/User")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/LoginResponse")
      *     ),
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="The provided credentials are incorrect."),
-     *             @OA\Property(
-     *                 property="errors",
-     *                 type="object",
-     *                 @OA\Property(
-     *                     property="email",
-     *                     type="array",
-     *                     @OA\Items(type="string", example="The provided credentials are incorrect.")
-     *                 )
-     *             )
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
      *     )
      * )
      */
     public function login(LoginRequest $request): JsonResponse
     {
         try {
+            \Log::info('Login request data', $request->all());
             $result = $this->authService->login($request->validated());
             
             return response()->json([
                 'success' => true,
                 'message' => $result['message'],
-                'user' => $result['user']
+                'user' => $result['user'],
+                'token' => $result['token']
             ]);
         } catch (ValidationException $e) {
+            \Log::error('Login validation failed', ['errors' => $e->errors(), 'input' => $request->all()]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -85,25 +68,20 @@ class AuthController extends Controller
     /**
      * @OA\Get(
      *     path="/api/merchant/user",
+     *     operationId="getMerchantUser",
      *     tags={"Merchant Authentication"},
      *     summary="Get authenticated user information",
      *     description="Retrieve current user data for profile menu and navigation",
-     *     security={{"web": {}}},
+     *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="User information retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="user", ref="#/components/schemas/User")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/UserResponse")
      *     ),
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="User not authenticated.")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
      *     )
      * )
      */
@@ -131,17 +109,15 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *     path="/api/merchant/logout",
+     *     operationId="merchantLogout",
      *     tags={"Merchant Authentication"},
      *     summary="Logout from merchant area",
      *     description="Destroy user session",
-     *     security={{"web": {}}},
+     *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="Logout successful",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Successfully logged out.")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/LogoutResponse")
      *     )
      * )
      */
@@ -158,29 +134,20 @@ class AuthController extends Controller
     /**
      * @OA\Get(
      *     path="/api/merchant/users",
+     *     operationId="getMerchantUsers",
      *     tags={"Merchant Authentication"},
      *     summary="Get list of users",
      *     description="Retrieve list of all users with their email and basic information",
-     *     security={{"web": {}}},
+     *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,
      *         description="Users retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(
-     *                 property="users",
-     *                 type="array",
-     *                 @OA\Items(ref="#/components/schemas/User")
-     *             )
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/UsersResponse")
      *     ),
      *     @OA\Response(
      *         response=401,
      *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="User not authenticated.")
-     *         )
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
      *     )
      * )
      */

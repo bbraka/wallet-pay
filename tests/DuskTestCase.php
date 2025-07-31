@@ -12,6 +12,11 @@ use PHPUnit\Framework\Attributes\BeforeClass;
 abstract class DuskTestCase extends BaseTestCase
 {
     /**
+     * The process running the test server.
+     */
+    protected static $serverProcess;
+
+    /**
      * Prepare for Dusk test execution.
      */
     #[BeforeClass]
@@ -20,6 +25,42 @@ abstract class DuskTestCase extends BaseTestCase
         if (! static::runningInSail()) {
             static::startChromeDriver(['--port=9515']);
         }
+        
+        // Start test server on port 8089
+        static::startTestServer();
+    }
+    
+    /**
+     * Start the test server.
+     */
+    protected static function startTestServer(): void
+    {
+        if (static::$serverProcess) {
+            return;
+        }
+        
+        // Kill any existing server on port 8089
+        exec('fuser -k 8089/tcp 2>/dev/null || true');
+        
+        // Start new server with test environment
+        $command = sprintf(
+            'APP_ENV=dusk.local php artisan serve --host=0.0.0.0 --port=8089 > /dev/null 2>&1 & echo $!'
+        );
+        
+        $pid = exec($command);
+        echo "Started test server with PID: $pid\n";
+        
+        // Give server time to start
+        sleep(3);
+        
+        // Check if server is running
+        $checkCommand = 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8089';
+        $httpCode = exec($checkCommand);
+        echo "Test server HTTP response code: $httpCode\n";
+        
+        register_shutdown_function(function () use ($pid) {
+            exec("kill -9 $pid 2>/dev/null");
+        });
     }
 
     /**

@@ -33,6 +33,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders",
      *     tags={"Orders"},
      *     summary="List user's orders with optional filtering",
+     *     operationId="getMerchantOrders",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="date_from",
@@ -96,6 +97,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders",
      *     tags={"Orders"},
      *     summary="Create a new order",
+     *     operationId="createMerchantOrder",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -135,6 +137,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders/rules",
      *     tags={"Orders"},
      *     summary="Get order validation rules and limits",
+     *     operationId="getMerchantOrderRules",
      *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,
@@ -161,6 +164,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders/{order}",
      *     tags={"Orders"},
      *     summary="Get a specific order",
+     *     operationId="getMerchantOrder",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="order",
@@ -191,6 +195,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders/{order}",
      *     tags={"Orders"},
      *     summary="Update an existing order",
+     *     operationId="updateMerchantOrder",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="order",
@@ -233,6 +238,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders/{order}",
      *     tags={"Orders"},
      *     summary="Cancel an order",
+     *     operationId="cancelMerchantOrder",
      *     security={{"sanctum": {}}},
      *     @OA\Parameter(
      *         name="order",
@@ -265,6 +271,7 @@ class OrdersController extends Controller
      *     path="/api/merchant/orders/withdrawal",
      *     tags={"Orders"},
      *     summary="Create a withdrawal request",
+     *     operationId="createMerchantWithdrawal",
      *     security={{"sanctum": {}}},
      *     @OA\RequestBody(
      *         required=true,

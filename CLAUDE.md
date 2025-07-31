@@ -5,6 +5,30 @@ The web application is inside a docker container. It is a php app which uses the
 
 Users are two types - merchants and administrators. User roles are managed in the admin area by a RBAC page. These roles determine which api endpoints are accessible to each user.
 
+## OpenAPI Documentation Requirements
+
+**IMPORTANT**: Every endpoint annotation MUST include an `operationId` property. This is required for proper OpenAPI specification generation and client SDK generation.
+
+### Endpoint Annotation Example:
+```php
+/**
+ * @OA\Get(
+ *     path="/api/orders",
+ *     summary="Get list of orders",
+ *     operationId="getOrders",
+ *     tags={"Orders"},
+ *     // ... other annotations
+ * )
+ */
+```
+
+### OperationId Naming Convention:
+- Use camelCase format
+- Start with HTTP method verb (get, post, put, delete)
+- Follow with resource name
+- Example: `getOrders`, `createOrder`, `updateOrder`, `deleteOrder`
+- For nested resources: `getUserOrders`, `createUserOrder`
+
 # MCP Usage
 Before implementing a feature - always check the currently running MCP servers
 

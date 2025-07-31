@@ -1,0 +1,15 @@
+# OpenAPI Generator Ignore
+# Generated files that we want to customize
+
+# Keep the main API files
+!api.ts
+!models/
+!runtime.ts
+
+# Ignore documentation and tests
+*.md
+git_push.sh
+.gitignore
+.npmignore
+package.json
+tsconfig.json

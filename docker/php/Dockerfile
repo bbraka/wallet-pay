@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
     xvfb \
+    # Java Runtime Environment for OpenAPI generator
+    default-jre \
     # Playwright/Chrome dependencies
     libnss3 \
     libnspr4 \

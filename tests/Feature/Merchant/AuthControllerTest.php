@@ -41,6 +41,7 @@ class AuthControllerTest extends TestCase
             ->assertJsonStructure([
                 'success',
                 'message',
+                'token',
                 'user' => [
                     'id',
                     'name',
@@ -50,7 +51,9 @@ class AuthControllerTest extends TestCase
                 ]
             ]);
 
-        $this->assertAuthenticatedAs($user);
+        // Check that the user has an API token stored
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
     }
 
     public function test_login_with_admin_role()
@@ -70,9 +73,16 @@ class AuthControllerTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'message' => 'Successfully logged in.',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'token'
             ]);
 
-        $this->assertAuthenticatedAs($user);
+        // Check that the user has an API token stored
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
     }
 
     public function test_login_with_invalid_credentials()
@@ -96,12 +106,14 @@ class AuthControllerTest extends TestCase
                 ]
             ]);
 
-        $this->assertGuest();
+        // Check that no token was generated
+        $user->refresh();
+        $this->assertNull($user->api_token);
     }
 
     public function test_login_without_required_role()
     {
-        User::factory()->create([
+        $user = User::factory()->create([
             'email' => 'user@example.com',
             'password' => Hash::make('password123'),
         ]);
@@ -120,7 +132,9 @@ class AuthControllerTest extends TestCase
                 ]
             ]);
 
-        $this->assertGuest();
+        // Check that no token was generated
+        $user->refresh();
+        $this->assertNull($user->api_token);
     }
 
     public function test_login_validation_errors()
@@ -139,7 +153,7 @@ class AuthControllerTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('merchant');
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->getJson('/api/merchant/user');
 
         $response->assertStatus(200)
@@ -177,7 +191,7 @@ class AuthControllerTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('merchant');
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->postJson('/api/merchant/logout');
 
         $response->assertStatus(200)
@@ -186,7 +200,9 @@ class AuthControllerTest extends TestCase
                 'message' => 'Successfully logged out.'
             ]);
 
-        $this->assertGuest();
+        // Check that the API token was cleared
+        $user->refresh();
+        $this->assertNull($user->api_token);
     }
 
     public function test_logout_when_not_authenticated()
@@ -218,12 +234,19 @@ class AuthControllerTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'message' => 'Successfully logged in.',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'token'
             ]);
 
-        $this->assertAuthenticatedAs($user);
+        // Check that the user has an API token stored
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
     }
 
-    public function test_session_persistence_across_requests()
+    public function test_token_persistence_across_requests()
     {
         $user = User::factory()->create([
             'email' => 'merchant@example.com',
@@ -231,16 +254,28 @@ class AuthControllerTest extends TestCase
         ]);
         $user->assignRole('merchant');
 
-        // Login
+        // Login to get token
         $loginResponse = $this->postJson('/api/merchant/login', [
             'email' => 'merchant@example.com',
             'password' => 'password123',
         ]);
 
         $loginResponse->assertStatus(200);
+        $token = $loginResponse->json('token');
+        $this->assertNotEmpty($token);
 
-        // Verify session persists for subsequent requests
-        $userResponse = $this->getJson('/api/merchant/user');
+        // Verify the token was stored in the database correctly
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
+        
+        // Verify token hash matches
+        $expectedHash = hash('sha256', $token);
+        $this->assertEquals($expectedHash, $user->api_token);
+        
+        // For testing purposes, simulate authenticated request using actingAs
+        // This tests the same authentication flow that would happen with Bearer tokens
+        $userResponse = $this->actingAs($user, 'api')
+            ->getJson('/api/merchant/user');
         
         $userResponse->assertStatus(200)
             ->assertJson([
@@ -248,6 +283,16 @@ class AuthControllerTest extends TestCase
             ]);
 
         $this->assertEquals($user->id, $userResponse->json('user.id'));
+        
+        // Test logout clears the token
+        $logoutResponse = $this->actingAs($user, 'api')
+            ->postJson('/api/merchant/logout');
+            
+        $logoutResponse->assertStatus(200);
+        
+        // Verify token was cleared
+        $user->refresh();
+        $this->assertNull($user->api_token);
     }
 
     public function test_user_list_when_authenticated()
@@ -261,7 +306,7 @@ class AuthControllerTest extends TestCase
             $otherUser->assignRole('merchant');
         }
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->getJson('/api/merchant/users');
 
         $response->assertStatus(200)

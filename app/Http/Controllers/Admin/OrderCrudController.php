@@ -539,4 +539,105 @@ class OrderCrudController extends CrudController
             return redirect()->back();
         }
     }
+
+    /**
+     * Define what happens when the Show operation is loaded.
+     * 
+     * @see https://backpackforlaravel.com/docs/crud-operation-show
+     * @return void
+     */
+    protected function setupShowOperation()
+    {
+        CRUD::column([
+            'name' => 'id',
+            'label' => 'ID',
+            'type' => 'number',
+        ]);
+
+        CRUD::column([
+            'name' => 'title',
+            'label' => 'Title',
+            'type' => 'text',
+        ]);
+
+        CRUD::column([
+            'name' => 'user_info',
+            'label' => 'User',
+            'type' => 'custom_html',
+            'value' => function($entry) {
+                if (!$entry->user) return '-';
+                return sprintf(
+                    '<strong>%s</strong><br><small>%s</small>',
+                    e($entry->user->name),
+                    e($entry->user->email)
+                );
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'amount',
+            'label' => 'Amount',
+            'type' => 'number',
+            'prefix' => '$',
+            'decimals' => 2,
+        ]);
+
+        CRUD::column([
+            'name' => 'status',
+            'label' => 'Status',
+            'type' => 'select_from_array',
+            'options' => array_combine(
+                array_column(OrderStatus::cases(), 'value'),
+                array_map(fn($case) => $case->label(), OrderStatus::cases())
+            ),
+        ]);
+
+        CRUD::column([
+            'name' => 'order_type',
+            'label' => 'Type',
+            'type' => 'select_from_array',
+            'options' => array_combine(
+                array_column(OrderType::cases(), 'value'),
+                array_map(fn($case) => $case->label(), OrderType::cases())
+            ),
+        ]);
+
+        CRUD::column([
+            'name' => 'provider_info',
+            'label' => 'Top-up Provider',
+            'type' => 'custom_html',
+            'value' => function($entry) {
+                if (!$entry->topUpProvider) return '-';
+                return sprintf(
+                    '<strong>%s</strong><br><small>%s</small>',
+                    e($entry->topUpProvider->name),
+                    e($entry->topUpProvider->code)
+                );
+            },
+        ]);
+
+        CRUD::column([
+            'name' => 'provider_reference',
+            'label' => 'Provider Reference',
+            'type' => 'text',
+        ]);
+
+        CRUD::column([
+            'name' => 'description',
+            'label' => 'Description',
+            'type' => 'textarea',
+        ]);
+
+        CRUD::column([
+            'name' => 'created_at',
+            'label' => 'Created At',
+            'type' => 'datetime',
+        ]);
+
+        CRUD::column([
+            'name' => 'updated_at',
+            'label' => 'Updated At',
+            'type' => 'datetime',
+        ]);
+    }
 }

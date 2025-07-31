@@ -19,6 +19,7 @@ class TopUpProvidersController extends Controller
      *     path="/api/merchant/top-up-providers",
      *     tags={"Top-up Providers"},
      *     summary="List active top-up providers",
+     *     operationId="getMerchantTopUpProviders",
      *     security={{"sanctum": {}}},
      *     @OA\Response(
      *         response=200,

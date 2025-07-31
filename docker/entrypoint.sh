@@ -130,6 +130,10 @@ php artisan migrate --force || {
 if [ "${APP_ENV:-local}" != "production" ]; then
     echo "Setting up test database..."
     
+    # Install Chrome driver for Laravel Dusk
+    echo "Installing Chrome driver for Laravel Dusk..."
+    php artisan dusk:chrome-driver --detect || echo "Chrome driver installation failed, but continuing..."
+    
     # Create test database if it doesn't exist
     php artisan tinker --execute="
         try {

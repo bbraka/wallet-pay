@@ -9,18 +9,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+})->middleware('auth:api');
 
 // OpenAPI Schema endpoint
 Route::get('/schema', [SchemaController::class, 'index'])->name('api.schema');
 
-// Merchant Authentication Routes
+// Merchant Authentication Routes - using Bearer token authentication
 Route::prefix('merchant')->name('merchant.')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     
-    Route::middleware(\App\Http\Middleware\CustomAuth::class)->group(function () {
+    Route::middleware('auth:api')->group(function () {
         Route::get('/user', [AuthController::class, 'user'])->name('user');
         Route::get('/users', [AuthController::class, 'users'])->name('users');
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         
         // Orders CRUD
         Route::get('/orders', [OrdersController::class, 'index'])->name('orders.index');
@@ -34,6 +35,4 @@ Route::prefix('merchant')->name('merchant.')->group(function () {
         // Top-up providers
         Route::get('/top-up-providers', [TopUpProvidersController::class, 'index'])->name('top-up-providers.index');
     });
-    
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

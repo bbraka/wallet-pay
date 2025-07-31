@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Login</title>
+</head>
+<body>
+    <form id="loginForm">
+        <input type="email" id="email" name="email" value="test@example.com" />
+        <input type="password" id="password" name="password" value="password" />
+        <button type="submit">Login</button>
+    </form>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                email: 'test@example.com',
+                password: 'password',
+                remember: false
+            };
+            
+            console.log('Sending request:', data);
+            
+            try {
+                const response = await fetch('/api/merchant/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const result = await response.json();
+                console.log('Response data:', result);
+                
+                if (result.token) {
+                    localStorage.setItem('auth_token', result.token);
+                    console.log('Token stored:', localStorage.getItem('auth_token'));
+                } else {
+                    console.log('No token in response');
+                }
+                
+            } catch (error) {
+                console.error('Request failed:', error);
+            }
+        });
+    </script>
+</body>
+</html>

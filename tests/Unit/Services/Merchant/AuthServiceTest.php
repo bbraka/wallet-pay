@@ -41,11 +41,15 @@ class AuthServiceTest extends TestCase
 
         $result = $this->authService->login($credentials);
 
-        $this->assertTrue(Auth::check());
-        $this->assertEquals($user->id, Auth::id());
+        // Check that token was generated and stored
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertNotEmpty($result['token']);
         $this->assertEquals('Successfully logged in.', $result['message']);
         $this->assertArrayHasKey('user', $result);
         $this->assertTrue($result['user']->hasRole('merchant'));
+        $this->assertEquals($user->id, $result['user']->id);
     }
 
     public function test_login_with_valid_credentials_and_admin_role()
@@ -63,11 +67,15 @@ class AuthServiceTest extends TestCase
 
         $result = $this->authService->login($credentials);
 
-        $this->assertTrue(Auth::check());
-        $this->assertEquals($user->id, Auth::id());
+        // Check that token was generated and stored
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertNotEmpty($result['token']);
         $this->assertEquals('Successfully logged in.', $result['message']);
         $this->assertArrayHasKey('user', $result);
         $this->assertTrue($result['user']->hasRole('admin'));
+        $this->assertEquals($user->id, $result['user']->id);
     }
 
     public function test_login_with_invalid_email()
@@ -79,7 +87,6 @@ class AuthServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $this->authService->login($credentials);
-        $this->assertFalse(Auth::check());
     }
 
     public function test_login_with_invalid_password()
@@ -97,7 +104,6 @@ class AuthServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $this->authService->login($credentials);
-        $this->assertFalse(Auth::check());
     }
 
     public function test_login_without_required_role()
@@ -115,14 +121,15 @@ class AuthServiceTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $this->authService->login($credentials);
-        $this->assertFalse(Auth::check());
     }
 
     public function test_get_user_info_when_authenticated()
     {
         $user = User::factory()->create();
         $user->assignRole('merchant');
-        Auth::login($user);
+        
+        // Simulate token authentication by using the api guard
+        Auth::guard('api')->setUser($user);
 
         $result = $this->authService->getUserInfo();
 
@@ -142,12 +149,18 @@ class AuthServiceTest extends TestCase
     public function test_logout()
     {
         $user = User::factory()->create();
-        Auth::login($user);
-        $this->assertTrue(Auth::check());
+        // Generate an API token first
+        $user->api_token = hash('sha256', 'test-token');
+        $user->save();
+        
+        Auth::guard('api')->setUser($user);
+        $this->assertNotNull(Auth::guard('api')->user());
 
         $this->authService->logout();
 
-        $this->assertFalse(Auth::check());
+        // Check that the token was cleared
+        $user->refresh();
+        $this->assertNull($user->api_token);
     }
 
     public function test_login_with_remember_option()
@@ -166,8 +179,12 @@ class AuthServiceTest extends TestCase
 
         $result = $this->authService->login($credentials);
 
-        $this->assertTrue(Auth::check());
-        $this->assertEquals($user->id, Auth::id());
+        // Check that token was generated and stored
+        $user->refresh();
+        $this->assertNotNull($user->api_token);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertNotEmpty($result['token']);
         $this->assertEquals('Successfully logged in.', $result['message']);
+        $this->assertEquals($user->id, $result['user']->id);
     }
 }

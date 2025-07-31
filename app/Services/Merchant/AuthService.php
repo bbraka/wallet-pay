@@ -5,6 +5,7 @@ namespace App\Services\Merchant;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -25,17 +26,21 @@ class AuthService
             ]);
         }
 
-        Auth::login($user, $credentials['remember'] ?? false);
+        // Generate simple API token
+        $token = Str::random(60);
+        $user->api_token = hash('sha256', $token);
+        $user->save();
 
         return [
             'user' => $user->load('roles'),
+            'token' => $token,
             'message' => 'Successfully logged in.'
         ];
     }
 
     public function getUserInfo(): array
     {
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
         
         if (!$user) {
             throw new \Exception('User not authenticated.');
@@ -48,7 +53,12 @@ class AuthService
 
     public function logout(): void
     {
-        Auth::logout();
+        $user = Auth::guard('api')->user();
+        if ($user) {
+            // Clear the API token
+            $user->api_token = null;
+            $user->save();
+        }
     }
 
     public function getUserList(): array

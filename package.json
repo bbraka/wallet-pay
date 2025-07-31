@@ -5,9 +5,11 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "generate-types": "openapi-typescript http://localhost:8000/api/schema -o resources/js/types/api.ts"
+        "generate-types": "openapi-typescript http://localhost:8000/api/schema -o resources/js/types/api.ts",
+        "generate:api": "openapi-generator-cli generate -i http://localhost:8000/api/schema -g typescript-fetch -o resources/js/merchant/generated --additional-properties=typescriptThreePlus=true,supportsES6=true,npmName=merchant-api-client,npmVersion=1.0.0"
     },
     "devDependencies": {
+        "@openapitools/openapi-generator-cli": "^2.13.16",
         "@playwright/test": "^1.54.1",
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-react": "^4.7.0",
@@ -19,9 +21,11 @@
         "vite": "^7.0.4"
     },
     "dependencies": {
+        "@tanstack/react-query": "^5.61.5",
         "bootstrap": "^4.6.2",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
+        "react-router-dom": "^7.1.2",
         "sass": "^1.89.2"
     }
 }

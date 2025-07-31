@@ -1,5 +1,1 @@
-fix admin crud showing an error in the transaction controller requesting Backpack Pro. Install https://packagist.org/packages/winex01/backpack-filter and use that instead. Also remake the admin/orders controller as well to use the same package. See feature 008 to find out how the features should look.
-
-run all the dusk tests - verify they complete. if not - debug until they all do.
-
-php artisan dusk:chrome-driver) - add this to the entry script
+remove the quick actions section from the wallet page. the same actions are already visible in the profile menu. you can add the icons and colors from the quick actions to the profile menu. they're cool. move the refresh button to the profile menu as well.
