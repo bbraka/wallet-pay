@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import apiService from '../../services/apiService';
 
-const WalletPage = () => {
+const WalletPage = forwardRef((props, ref) => {
     const { user } = useAuth();
-    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -20,6 +18,11 @@ const WalletPage = () => {
     useEffect(() => {
         loadOrders();
     }, []);
+
+    // Expose refresh function to parent component
+    useImperativeHandle(ref, () => ({
+        refreshData: () => loadOrders()
+    }));
 
     const loadOrders = async (filterParams = {}) => {
         try {
@@ -150,54 +153,6 @@ const WalletPage = () => {
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-body">
-                            <h5 className="card-title">Quick Actions</h5>
-                            <div className="row">
-                                <div className="col-6 col-md-3 mb-2">
-                                    <button 
-                                        className="btn btn-success btn-block"
-                                        onClick={() => navigate('/top-up')}
-                                    >
-                                        <i className="fas fa-plus mr-2"></i>
-                                        Top Up
-                                    </button>
-                                </div>
-                                <div className="col-6 col-md-3 mb-2">
-                                    <button 
-                                        className="btn btn-info btn-block"
-                                        onClick={() => navigate('/transfer')}
-                                    >
-                                        <i className="fas fa-exchange-alt mr-2"></i>
-                                        Transfer
-                                    </button>
-                                </div>
-                                <div className="col-6 col-md-3 mb-2">
-                                    <button 
-                                        className="btn btn-warning btn-block"
-                                        onClick={() => navigate('/withdrawal')}
-                                    >
-                                        <i className="fas fa-minus mr-2"></i>
-                                        Withdraw
-                                    </button>
-                                </div>
-                                <div className="col-6 col-md-3 mb-2">
-                                    <button 
-                                        className="btn btn-secondary btn-block"
-                                        onClick={() => loadOrders()}
-                                    >
-                                        <i className="fas fa-sync mr-2"></i>
-                                        Refresh
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             {/* Filters */}
             <div className="row mb-4">
@@ -407,6 +362,8 @@ const WalletPage = () => {
             </div>
         </div>
     );
-};
+});
+
+WalletPage.displayName = 'WalletPage';
 
 export default WalletPage;

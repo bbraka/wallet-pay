@@ -10,13 +10,13 @@ use App\Models\User;
 use App\Services\OrderService;
 use App\Services\WalletTransactionService;
 use App\Exceptions\Wallet\InsufficientBalanceException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class WithdrawalOrdersTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private OrderService $orderService;
     private User $user;

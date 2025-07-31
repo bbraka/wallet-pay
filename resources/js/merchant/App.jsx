@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -10,6 +10,23 @@ import TopUpPage from './components/transactions/TopUpPage';
 import TransferPage from './components/transactions/TransferPage';
 import WithdrawalPage from './components/transactions/WithdrawalPage';
 
+// Wrapper component for WalletPage to handle refresh functionality
+function WalletPageWrapper() {
+    const walletPageRef = useRef();
+    
+    const handleRefresh = () => {
+        if (walletPageRef.current && walletPageRef.current.refreshData) {
+            walletPageRef.current.refreshData();
+        }
+    };
+    
+    return (
+        <Layout onRefreshWallet={handleRefresh}>
+            <WalletPage ref={walletPageRef} />
+        </Layout>
+    );
+}
+
 function MerchantApp() {
     return (
         <AuthProvider>
@@ -18,9 +35,7 @@ function MerchantApp() {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/wallet" element={
                         <ProtectedRoute>
-                            <Layout>
-                                <WalletPage />
-                            </Layout>
+                            <WalletPageWrapper />
                         </ProtectedRoute>
                     } />
                     <Route path="/top-up" element={

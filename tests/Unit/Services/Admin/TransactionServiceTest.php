@@ -25,9 +25,8 @@ class TransactionServiceTest extends TestCase
         
         $this->transactionService = app(TransactionService::class);
         
-        $this->adminUser = User::factory()->create(['email' => 'admin@test.com']);
+        $this->adminUser = User::factory()->create();
         $this->targetUser = User::factory()->create([
-            'email' => 'user@test.com',
             'wallet_amount' => 0.00
         ]);
         

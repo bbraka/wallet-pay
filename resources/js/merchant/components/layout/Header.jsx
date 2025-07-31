@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({ onRefreshWallet }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     
     const handleLogout = async () => {
@@ -105,6 +106,51 @@ const Header = () => {
                                             {user.email}
                                         </h6>
                                     </li>
+                                    <li><hr className="dropdown-divider" /></li>
+                                    <li>
+                                        <h6 className="dropdown-header text-success">
+                                            <i className="fas fa-credit-card me-2"></i>
+                                            Quick Actions
+                                        </h6>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className="dropdown-item d-flex align-items-center"
+                                            onClick={() => navigate('/top-up')}
+                                        >
+                                            <i className="fas fa-plus me-2 text-success"></i>
+                                            <span>Top Up</span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className="dropdown-item d-flex align-items-center"
+                                            onClick={() => navigate('/transfer')}
+                                        >
+                                            <i className="fas fa-exchange-alt me-2 text-info"></i>
+                                            <span>Transfer</span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button
+                                            className="dropdown-item d-flex align-items-center"  
+                                            onClick={() => navigate('/withdrawal')}
+                                        >
+                                            <i className="fas fa-minus me-2 text-warning"></i>
+                                            <span>Withdraw</span>
+                                        </button>
+                                    </li>
+                                    {location.pathname === '/wallet' && onRefreshWallet && (
+                                        <li>
+                                            <button
+                                                className="dropdown-item d-flex align-items-center"
+                                                onClick={onRefreshWallet}
+                                            >
+                                                <i className="fas fa-sync me-2 text-secondary"></i>
+                                                <span>Refresh</span>
+                                            </button>
+                                        </li>
+                                    )}
                                     <li><hr className="dropdown-divider" /></li>
                                     <li>
                                         <button

@@ -2,7 +2,7 @@ import React from 'react';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, onRefreshWallet }) => {
     const { loading } = useAuth();
     
     if (loading) {
@@ -17,7 +17,7 @@ const Layout = ({ children }) => {
     
     return (
         <div className="min-vh-100 bg-light">
-            <Header />
+            <Header onRefreshWallet={onRefreshWallet} />
             <main className="container-fluid py-4">
                 {children}
             </main>

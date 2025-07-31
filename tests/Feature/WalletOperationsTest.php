@@ -7,12 +7,12 @@ use App\Enums\OrderType;
 use App\Models\TopUpProvider;
 use App\Models\User;
 use App\Services\OrderService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class WalletOperationsTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private OrderService $orderService;
     private User $sender;
@@ -34,13 +34,15 @@ class WalletOperationsTest extends TestCase
         $walletService->add($this->sender, 200.00, 'Initial balance');
         $walletService->add($this->receiver, 50.00, 'Initial balance');
         
-        $this->provider = TopUpProvider::create([
-            'name' => 'Test Bank',
-            'code' => 'TEST_BANK',
-            'description' => 'Test bank provider',
-            'is_active' => true,
-            'requires_reference' => false, // Changed to false for admin test
-        ]);
+        $this->provider = TopUpProvider::firstOrCreate(
+            ['code' => 'TEST_BANK'],
+            [
+                'name' => 'Test Bank',
+                'description' => 'Test bank provider',
+                'is_active' => true,
+                'requires_reference' => false, // Changed to false for admin test
+            ]
+        );
     }
 
     public function test_internal_transfer_workflow(): void
@@ -77,13 +79,15 @@ class WalletOperationsTest extends TestCase
     public function test_user_top_up_workflow(): void
     {
         // Create a provider that requires reference for this test
-        $bankProvider = TopUpProvider::create([
-            'name' => 'Bank Provider',
-            'code' => 'BANK_PROVIDER',
-            'description' => 'Bank provider that requires reference',
-            'is_active' => true,
-            'requires_reference' => true,
-        ]);
+        $bankProvider = TopUpProvider::firstOrCreate(
+            ['code' => 'BANK_PROVIDER'],
+            [
+                'name' => 'Bank Provider',
+                'description' => 'Bank provider that requires reference',
+                'is_active' => true,
+                'requires_reference' => true,
+            ]
+        );
         
         $order = $this->orderService->createUserTopUpOrder(
             $this->sender,

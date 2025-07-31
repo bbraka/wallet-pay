@@ -5,12 +5,12 @@ namespace Tests\Feature\Admin;
 use App\Models\Order;
 use App\Models\TopUpProvider;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class OrderCrudControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected User $adminUser;
     protected User $targetUser;
@@ -21,7 +21,7 @@ class OrderCrudControllerTest extends TestCase
         parent::setUp();
         $this->withoutMiddleware();
         
-        $this->adminUser = User::factory()->create(['email' => 'admin@test.com']);
+        $this->adminUser = User::factory()->create();
         
         // Create admin role and permission
         $adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
@@ -29,7 +29,6 @@ class OrderCrudControllerTest extends TestCase
         $adminRole->givePermissionTo($adminPermission);
         $this->adminUser->assignRole($adminRole);
         $this->targetUser = User::factory()->create([
-            'email' => 'user@test.com', 
             'wallet_amount' => 0.00
         ]);
         
@@ -46,11 +45,14 @@ class OrderCrudControllerTest extends TestCase
         // Update wallet amount after transaction
         $this->targetUser->update(['wallet_amount' => 50.00]);
         
-        $this->provider = TopUpProvider::factory()->create([
-            'name' => 'Test Provider',
-            'code' => 'TEST',
-            'is_active' => true
-        ]);
+        $this->provider = TopUpProvider::firstOrCreate(
+            ['code' => 'TEST'],
+            [
+                'name' => 'Test Provider',
+                'is_active' => true,
+                'description' => 'Test provider for feature tests'
+            ]
+        );
     }
 
     public function test_admin_can_create_top_up_order()

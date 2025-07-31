@@ -7,12 +7,12 @@ use App\Enums\TransactionType;
 use App\Exceptions\Wallet\InsufficientBalanceException;
 use App\Models\User;
 use App\Services\WalletTransactionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class WalletTransactionServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private WalletTransactionService $walletService;
     private User $user;

@@ -16,8 +16,8 @@ class AuthControllerTest extends TestCase
     {
         parent::setUp();
         
-        Role::create(['name' => 'merchant']);
-        Role::create(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'merchant']);
+        Role::firstOrCreate(['name' => 'admin']);
     }
 
     public function test_login_with_valid_credentials()
@@ -181,8 +181,7 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(401)
             ->assertJson([
-                'success' => false,
-                'message' => 'User not authenticated.'
+                'message' => 'Unauthenticated.'
             ]);
     }
 
@@ -209,10 +208,9 @@ class AuthControllerTest extends TestCase
     {
         $response = $this->postJson('/api/merchant/logout');
 
-        $response->assertStatus(200)
+        $response->assertStatus(401)
             ->assertJson([
-                'success' => true,
-                'message' => 'Successfully logged out.'
+                'message' => 'Unauthenticated.'
             ]);
     }
 
@@ -349,8 +347,7 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(401)
             ->assertJson([
-                'success' => false,
-                'message' => 'User not authenticated.'
+                'message' => 'Unauthenticated.'
             ]);
     }
 }

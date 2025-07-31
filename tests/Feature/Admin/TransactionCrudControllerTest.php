@@ -6,12 +6,12 @@ use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Models\Transaction;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class TransactionCrudControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected User $adminUser;
     protected User $targetUser;
@@ -21,7 +21,7 @@ class TransactionCrudControllerTest extends TestCase
         parent::setUp();
         $this->withoutMiddleware();
         
-        $this->adminUser = User::factory()->create(['email' => 'admin@test.com']);
+        $this->adminUser = User::factory()->create();
         
         // Create admin role and permission
         $adminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
@@ -29,7 +29,6 @@ class TransactionCrudControllerTest extends TestCase
         $adminRole->givePermissionTo($adminPermission);
         $this->adminUser->assignRole($adminRole);
         $this->targetUser = User::factory()->create([
-            'email' => 'user@test.com',
             'wallet_amount' => 0.00
         ]);
         

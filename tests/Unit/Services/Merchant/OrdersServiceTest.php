@@ -37,9 +37,9 @@ class OrdersServiceTest extends TestCase
 
     public function test_generates_descriptive_order_descriptions(): void
     {
-        $adminUser = User::factory()->create(['email' => 'admin@test.com']);
-        $targetUser = User::factory()->create(['email' => 'user@test.com']);
-        $receiverUser = User::factory()->create(['email' => 'receiver@test.com']);
+        $adminUser = User::factory()->create();
+        $targetUser = User::factory()->create();
+        $receiverUser = User::factory()->create();
 
         // Test admin top-up description
         $adminDescription = $this->service->generateOrderDescription(
@@ -48,7 +48,7 @@ class OrdersServiceTest extends TestCase
             null,
             123
         );
-        $this->assertEquals('Admin top-up for user@test.com - Order #123', $adminDescription);
+        $this->assertEquals("Admin top-up for {$targetUser->email} - Order #123", $adminDescription);
 
         // Test user top-up description
         $userTopUpDescription = $this->service->generateOrderDescription(
@@ -57,7 +57,7 @@ class OrdersServiceTest extends TestCase
             null,
             456
         );
-        $this->assertEquals('Order purchased funds #456 - User top-up by user@test.com', $userTopUpDescription);
+        $this->assertEquals("Order purchased funds #456 - User top-up by {$targetUser->email}", $userTopUpDescription);
 
         // Test internal transfer description
         $transferDescription = $this->service->generateOrderDescription(
@@ -66,7 +66,7 @@ class OrdersServiceTest extends TestCase
             $receiverUser,
             789
         );
-        $this->assertEquals('Received funds from user@test.com to receiver@test.com', $transferDescription);
+        $this->assertEquals("Received funds from {$targetUser->email} to {$receiverUser->email}", $transferDescription);
 
         // Test user withdrawal description
         $withdrawalDescription = $this->service->generateOrderDescription(
@@ -75,7 +75,7 @@ class OrdersServiceTest extends TestCase
             null,
             101
         );
-        $this->assertEquals('User withdrawal request by user@test.com - Order #101', $withdrawalDescription);
+        $this->assertEquals("User withdrawal request by {$targetUser->email} - Order #101", $withdrawalDescription);
 
         // Test custom description takes precedence
         $customDescription = $this->service->generateOrderDescription(
@@ -91,8 +91,8 @@ class OrdersServiceTest extends TestCase
     public function test_admin_top_up_uses_generated_description(): void
     {
         Event::fake();
-        $adminUser = User::factory()->create(['email' => 'admin@test.com']);
-        $targetUser = User::factory()->create(['email' => 'user@test.com']);
+        $adminUser = User::factory()->create();
+        $targetUser = User::factory()->create();
 
         $data = [
             'title' => 'Admin Top-up',
@@ -102,7 +102,7 @@ class OrdersServiceTest extends TestCase
 
         $order = $this->service->createAdminTopUp($targetUser, $data, $adminUser);
 
-        $this->assertStringContainsString('Admin top-up for user@test.com', $order->description);
+        $this->assertStringContainsString("Admin top-up for {$targetUser->email}", $order->description);
         $this->assertStringContainsString("Order #{$order->id}", $order->description);
     }
 

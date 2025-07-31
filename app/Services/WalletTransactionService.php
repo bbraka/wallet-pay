@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class WalletTransactionService
@@ -23,6 +24,9 @@ class WalletTransactionService
         }
 
         return DB::transaction(function () use ($user, $amount, $description, $order) {
+            // Refresh user wallet amount to prevent inconsistencies from manual updates
+            $this->refreshUserWalletAmount($user);
+            
             $transaction = Transaction::create([
                 'user_id' => $user->id,
                 'type' => TransactionType::CREDIT,
@@ -48,12 +52,15 @@ class WalletTransactionService
             throw new Exception('Amount must be positive (will be stored as negative for debit)');
         }
 
-        // Check sufficient balance before withdrawal
-        if (!$this->hasSufficientBalance($user, $amount)) {
-            throw new InsufficientBalanceException("Insufficient balance. Required: {$amount}, Available: {$this->calculateUserBalance($user)}");
-        }
-
         return DB::transaction(function () use ($user, $amount, $description, $order) {
+            // Refresh user wallet amount to prevent inconsistencies from manual updates
+            $this->refreshUserWalletAmount($user);
+            
+            // Check sufficient balance before withdrawal (after refresh)
+            if (!$this->hasSufficientBalance($user, $amount)) {
+                throw new InsufficientBalanceException("Insufficient balance. Required: {$amount}, Available: {$this->calculateUserBalance($user)}");
+            }
+            
             $transaction = Transaction::create([
                 'user_id' => $user->id,
                 'type' => TransactionType::DEBIT,
@@ -107,6 +114,23 @@ class WalletTransactionService
     {
         $balance = $this->calculateUserBalance($user);
         $user->update(['wallet_amount' => $balance]);
+    }
+
+    /**
+     * Refresh user's wallet amount to match calculated balance from transactions
+     * This prevents inconsistencies when wallet_amount was manually updated
+     */
+    private function refreshUserWalletAmount(User $user): void
+    {
+        $calculatedBalance = $this->calculateUserBalance($user);
+        $currentWalletAmount = $user->wallet_amount;
+        
+        if (abs($calculatedBalance - $currentWalletAmount) > 0.01) { // Check for discrepancy (accounting for floating point precision)
+            $user->update(['wallet_amount' => $calculatedBalance]);
+            
+            // Log the correction if needed
+            Log::warning("Wallet amount corrected for user {$user->id}: {$currentWalletAmount} -> {$calculatedBalance}");
+        }
     }
 
     /**

@@ -27,9 +27,8 @@ class OrdersServiceAdminTest extends TestCase
         
         $this->ordersService = app(OrdersService::class);
         
-        $this->adminUser = User::factory()->create(['email' => 'admin@test.com']);
+        $this->adminUser = User::factory()->create();
         $this->targetUser = User::factory()->create([
-            'email' => 'user@test.com',
             'wallet_amount' => 0.00
         ]);
         
@@ -48,7 +47,7 @@ class OrdersServiceAdminTest extends TestCase
         
         $this->provider = TopUpProvider::factory()->create([
             'name' => 'Test Provider',
-            'code' => 'TEST',
+            'code' => 'TEST', 
             'is_active' => true
         ]);
     }

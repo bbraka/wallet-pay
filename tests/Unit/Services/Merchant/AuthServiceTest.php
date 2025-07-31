@@ -22,8 +22,8 @@ class AuthServiceTest extends TestCase
         parent::setUp();
         $this->authService = new AuthService();
         
-        Role::create(['name' => 'merchant']);
-        Role::create(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'merchant']);
+        Role::firstOrCreate(['name' => 'admin']);
     }
 
     public function test_login_with_valid_credentials_and_merchant_role()

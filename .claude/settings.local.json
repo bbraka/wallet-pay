@@ -68,7 +68,8 @@
       "Bash(npm run generate:api:*)",
       "Bash(npm run build:*)",
       "Bash(npm run generate-api:*)",
-      "WebFetch(domain:stackoverflow.com)"
+      "WebFetch(domain:stackoverflow.com)",
+      "Bash(time:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
