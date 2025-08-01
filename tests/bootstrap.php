@@ -18,8 +18,6 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $app['config']->set('database.connections.mysql.database', 'user_wallet_app_test');
 
 // Set up the database for testing
-echo "Setting up test database...\n";
-
 // Fresh migration and seeding
 Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
     '--env' => 'testing',
@@ -37,11 +35,7 @@ Illuminate\Support\Facades\Artisan::call('db:seed', [
     '--env' => 'testing'
 ]);
 
-echo "Test database setup complete.\n";
-
 // Register shutdown function to clean up after all tests
 register_shutdown_function(function() {
-    echo "Cleaning up test database...\n";
-    // Optionally truncate tables or leave them for debugging
-    echo "Test database cleanup complete.\n";
+    // Cleanup logic here if needed
 });

@@ -21,4 +21,16 @@ class OrderPolicy
     {
         return $user->id === $order->user_id;
     }
+
+    public function confirm(User $user, Order $order): bool
+    {
+        // Only the receiver of a transfer can confirm it
+        return $user->id === $order->receiver_user_id;
+    }
+
+    public function reject(User $user, Order $order): bool
+    {
+        // Only the receiver of a transfer can reject it
+        return $user->id === $order->receiver_user_id;
+    }
 }

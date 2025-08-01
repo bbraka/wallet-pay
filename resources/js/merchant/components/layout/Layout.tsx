@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
 
-const Layout = ({ children, onRefreshWallet }) => {
+interface LayoutProps {
+    children: ReactNode;
+    onRefreshWallet?: () => void;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children, onRefreshWallet }) => {
     const { loading } = useAuth();
     
     if (loading) {

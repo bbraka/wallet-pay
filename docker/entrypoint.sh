@@ -149,8 +149,9 @@ if [ "${APP_ENV:-local}" != "production" ]; then
                 'collation' => 'utf8mb4_unicode_ci',
             ]]);
             
-            // Create test database and grant permissions
-            DB::connection('mysql_root')->statement('CREATE DATABASE IF NOT EXISTS user_wallet_app_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            // Ensure clean test database setup
+            DB::connection('mysql_root')->statement('DROP DATABASE IF EXISTS user_wallet_app_test');
+            DB::connection('mysql_root')->statement('CREATE DATABASE user_wallet_app_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
             DB::connection('mysql_root')->statement('GRANT ALL PRIVILEGES ON user_wallet_app_test.* TO \"user_wallet_user\"@\"%\"');
             DB::connection('mysql_root')->statement('FLUSH PRIVILEGES');
             echo 'Test database setup completed successfully!' . PHP_EOL;

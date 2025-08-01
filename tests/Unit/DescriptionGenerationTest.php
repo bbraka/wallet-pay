@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Enums\OrderType;
 use App\Models\User;
 use App\Services\Merchant\OrdersService;
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class DescriptionGenerationTest extends TestCase
 {

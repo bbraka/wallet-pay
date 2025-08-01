@@ -41,6 +41,10 @@ export interface CancelMerchantOrderRequest {
     order: number;
 }
 
+export interface ConfirmMerchantOrderRequest {
+    order: number;
+}
+
 export interface CreateMerchantOrderOperationRequest {
     createMerchantOrderRequest: CreateMerchantOrderRequest;
 }
@@ -60,6 +64,10 @@ export interface GetMerchantOrdersRequest {
     maxAmount?: number;
     status?: GetMerchantOrdersStatusEnum;
     receiverUserId?: number;
+}
+
+export interface RejectMerchantOrderRequest {
+    order: number;
 }
 
 export interface UpdateMerchantOrderOperationRequest {
@@ -114,6 +122,51 @@ export class OrdersApi extends runtime.BaseAPI {
      */
     async cancelMerchantOrder(requestParameters: CancelMerchantOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
         const response = await this.cancelMerchantOrderRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Confirm a pending order
+     */
+    async confirmMerchantOrderRaw(requestParameters: ConfirmMerchantOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Order>> {
+        if (requestParameters['order'] == null) {
+            throw new runtime.RequiredError(
+                'order',
+                'Required parameter "order" was null or undefined when calling confirmMerchantOrder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("sanctum", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/merchant/orders/{order}/confirm`;
+        urlPath = urlPath.replace(`{${"order"}}`, encodeURIComponent(String(requestParameters['order'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OrderFromJSON(jsonValue));
+    }
+
+    /**
+     * Confirm a pending order
+     */
+    async confirmMerchantOrder(requestParameters: ConfirmMerchantOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
+        const response = await this.confirmMerchantOrderRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -351,6 +404,88 @@ export class OrdersApi extends runtime.BaseAPI {
      */
     async getMerchantOrders(requestParameters: GetMerchantOrdersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMerchantOrders200Response> {
         const response = await this.getMerchantOrdersRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get pending transfers received by the user
+     */
+    async getMerchantPendingTransfersRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<Order>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("sanctum", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/merchant/orders/pending-transfers`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(OrderFromJSON));
+    }
+
+    /**
+     * Get pending transfers received by the user
+     */
+    async getMerchantPendingTransfers(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Order>> {
+        const response = await this.getMerchantPendingTransfersRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reject a pending order
+     */
+    async rejectMerchantOrderRaw(requestParameters: RejectMerchantOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Order>> {
+        if (requestParameters['order'] == null) {
+            throw new runtime.RequiredError(
+                'order',
+                'Required parameter "order" was null or undefined when calling rejectMerchantOrder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("sanctum", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/merchant/orders/{order}/reject`;
+        urlPath = urlPath.replace(`{${"order"}}`, encodeURIComponent(String(requestParameters['order'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OrderFromJSON(jsonValue));
+    }
+
+    /**
+     * Reject a pending order
+     */
+    async rejectMerchantOrder(requestParameters: RejectMerchantOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Order> {
+        const response = await this.rejectMerchantOrderRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

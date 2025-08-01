@@ -18,7 +18,7 @@ abstract class TestCase extends BaseTestCase
 
         // Force test database configuration before any database connections are made
         $app['config']->set('database.connections.mysql.database', 'user_wallet_app_test');
-        
+
         return $app;
     }
 
@@ -28,10 +28,17 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+    }
+
+    /**
+     * Verify we're using the correct test database.
+     * Call this method in tests that need database verification.
+     */
+    protected function verifyTestDatabase(): void
+    {
         // Clear any existing database connections to force new connections with updated config
         DB::purge('mysql');
-        
+
         // Verify we're using the test database
         $dbName = DB::connection()->getDatabaseName();
         if ($dbName !== 'user_wallet_app_test') {
@@ -47,4 +54,11 @@ abstract class TestCase extends BaseTestCase
         return $prefix . '-' . uniqid() . '@test.com';
     }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        restore_error_handler();
+        restore_exception_handler();
+    }
 }

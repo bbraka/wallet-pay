@@ -1,10 +1,31 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { MerchantAuthenticationApi } from '../generated/src';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { MerchantAuthenticationApi, User, LoginRequest } from '../generated/src';
 import { apiConfig } from '../config/api';
 
-const AuthContext = createContext();
+interface AuthContextType {
+    isAuthenticated: boolean;
+    user: User | null;
+    loading: boolean;
+    error: string | null;
+    login: (credentials: LoginRequest) => Promise<{ success: boolean; user: User }>;
+    logout: () => Promise<void>;
+    clearError: () => void;
+}
 
-export const useAuth = () => {
+interface AuthProviderProps {
+    children: ReactNode;
+}
+
+interface LoginResponse {
+    success: boolean;
+    user: User;
+    token?: string;
+    message?: string;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (!context) {
         throw new Error('useAuth must be used within an AuthProvider');
@@ -12,18 +33,18 @@ export const useAuth = () => {
     return context;
 };
 
-export const AuthProvider = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
     
     // Function to get fresh auth API instance
-    const getAuthApi = () => new MerchantAuthenticationApi(apiConfig.getConfiguration());
+    const getAuthApi = (): MerchantAuthenticationApi => new MerchantAuthenticationApi(apiConfig.getConfiguration());
     
     useEffect(() => {
         // Check authentication on mount
-        const checkAuth = async () => {
+        const checkAuth = async (): Promise<void> => {
             try {
                 setLoading(true);
                 
@@ -45,7 +66,7 @@ export const AuthProvider = ({ children }) => {
                         const storedUser = localStorage.getItem('auth_user');
                         if (storedUser) {
                             try {
-                                const parsedUser = JSON.parse(storedUser);
+                                const parsedUser: User = JSON.parse(storedUser);
                                 setUser(parsedUser);
                                 setIsAuthenticated(true);
                             } catch (parseErr) {
@@ -80,14 +101,14 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, []);
     
-    const login = async (credentials) => {
+    const login = async (credentials: LoginRequest): Promise<{ success: boolean; user: User }> => {
         try {
             setLoading(true);
             setError(null);
             
             const response = await getAuthApi().merchantLogin({
                 loginRequest: credentials
-            });
+            }) as LoginResponse;
             
             console.log('Login response:', response);
             
@@ -107,7 +128,7 @@ export const AuthProvider = ({ children }) => {
             } else {
                 throw new Error(response.message || 'Login failed');
             }
-        } catch (err) {
+        } catch (err: any) {
             const errorMessage = err.message || 'Login failed';
             setError(errorMessage);
             setIsAuthenticated(false);
@@ -118,7 +139,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
     
-    const logout = async () => {
+    const logout = async (): Promise<void> => {
         try {
             setLoading(true);
             await getAuthApi().merchantLogout();
@@ -133,7 +154,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
     
-    const value = {
+    const value: AuthContextType = {
         isAuthenticated,
         user,
         loading,

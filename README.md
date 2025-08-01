@@ -1,156 +1,57 @@
 # User Wallet Application
 
-A Laravel-based web application with React frontend for managing user wallets, orders, and transactions.
+Laravel + React wallet management system with Docker containerization.
 
-## Overview
+**Core Features**: User wallets, order processing, transactions, admin RBAC, React SPA frontend
 
-This application provides a comprehensive wallet management system with:
-- User wallet balance tracking
-- Order processing with multiple status states
-- Transaction management (credit/debit)
-- Admin area with RBAC (Role-Based Access Control)
-- Customer area with React SPA interface
-
-## Architecture
-
-- **Backend**: Laravel with Eloquent ORM
-- **Frontend**: React SPA with Bootstrap 4 styling
-- **Database**: MariaDB (latest stable)
-- **Containerization**: Docker with Nginx
-- **Testing**: Laravel Dusk for E2E testing
-
-## API Documentation
-
-### OpenAPI/Swagger Documentation
-
-The application includes comprehensive API documentation using OpenAPI 3.0 specifications.
-
-#### Accessing API Documentation
-
-1. **OpenAPI Schema Endpoint**
-   ```
-   GET http://localhost:8000/api/schema
-   ```
-   Returns the complete OpenAPI 3.0 JSON specification for all API endpoints and models.
-
-2. **Swagger UI Documentation**
-   ```
-   GET http://localhost:8000/api/documentation
-   ```
-   Interactive Swagger UI interface for exploring and testing API endpoints.
-
-3. **Model Schemas**
-   The following models are fully documented with OpenAPI annotations:
-   - **User**: User accounts with wallet balances
-   - **Order**: Order management with status tracking
-   - **Transaction**: Wallet transactions (credit/debit)
-
-#### For Frontend Developers
-
-Generate TypeScript interfaces from the OpenAPI schema:
-
-```bash
-npm run generate-types
-```
-
-This creates TypeScript definitions in `resources/js/types/api.ts` that match your Laravel models exactly.
-
-#### For Backend Developers
-
-Update API documentation when models change:
-
-```bash
-php artisan l5-swagger:generate
-```
+**Tech Stack**: Laravel, React, MariaDB, Docker, OpenAPI/Swagger
 
 ## Quick Start
 
-### Development Setup
-
-1. **Start the application**
-   ```bash
-   docker compose up -d
-   ```
-
-2. **Install dependencies**
-   ```bash
-   composer install
-   npm install
-   ```
-
-3. **Run migrations**
-   ```bash
-   php artisan migrate --seed
-   ```
-
-4. **Generate API types**
-   ```bash
-   npm run generate-types
-   ```
-
-### Accessing the Application
-
-- **Customer Area**: `http://localhost/customer`
-- **Admin Area**: `http://localhost/admin`
-- **API Documentation**: `http://localhost:8000/api/documentation`
-- **API Schema**: `http://localhost:8000/api/schema`
-
-## Development Workflow
-
-### API Development
-
-1. Update model OpenAPI annotations in `app/Models/`
-2. Regenerate documentation: `php artisan l5-swagger:generate`
-3. Update frontend types: `npm run generate-types`
-
-### Frontend Development
-
-1. Use generated TypeScript interfaces from `resources/js/types/api.ts`
-2. All model properties and enums are type-safe
-3. IDE autocompletion available for all API models
-
-### Testing
-
-Run comprehensive tests including backend and frontend:
-
 ```bash
-# Backend tests
-php artisan test
+# Setup environment
+cp .env.example .env
+# Edit .env with your database passwords and GitHub token
 
-# Frontend E2E tests
-php artisan dusk
+# Start containers (auto-installs dependencies & runs migrations)
+docker compose up --build -d
+
+# Access application
+# - Customer Area: http://localhost:8000/  
+# - Admin Area: http://localhost:8000/admin
+# - API Docs: http://localhost:8000/api/documentation
 ```
 
-## Project Structure
+## Container Management
 
-```
-├── app/Models/              # Eloquent models with OpenAPI annotations
-├── app/Http/Controllers/    # API controllers
-├── resources/js/            # React frontend code
-├── resources/js/types/      # Generated TypeScript interfaces
-├── routes/api.php          # API routes
-├── features/               # Feature documentation and reports
-└── tests/Browser/          # Laravel Dusk tests
+### Full Rebuild
+```bash
+docker compose down -v
+docker compose up --build -d
 ```
 
-## Models
+### Troubleshooting
 
-### User
-- Wallet balance management
-- Role-based access control
-- Soft delete support
+**Database Issues**: `docker compose logs mysql` then `docker compose restart mysql`
 
-### Order
-- Status: `pending_payment`, `completed`, `cancelled`, `refunded`
-- Credit note generation for refunds
-- User relationship
+**Migration/Test Issues**: Use full rebuild (recreates all databases and runs migrations):
+```bash
+docker compose down -v
+docker compose up --build -d
+```
 
-### Transaction
-- Type: `credit`, `debit`
-- Status: `active`, `cancelled`
-- Order relationship (optional)
-- Audit trail with created_by
+## Development
 
-## License
+**API Types**: `npm run generate-types` (creates TypeScript interfaces from OpenAPI schema)
 
-This project is proprietary software.
+**Testing**: 
+- Backend: `docker compose exec app php artisan test`
+- E2E: `docker compose exec app php artisan dusk`
+
+**Ports**: App (8000), Database (3307)
+
+## Core Models
+
+- **User**: Wallet balances, RBAC
+- **Order**: Status tracking (`pending_payment`, `completed`, `cancelled`, `refunded`)  
+- **Transaction**: Credit/debit entries with audit trail

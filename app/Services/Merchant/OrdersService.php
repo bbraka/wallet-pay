@@ -29,6 +29,17 @@ class OrdersService
         return $query->paginate(15);
     }
 
+    public function getPendingTransfersReceived(User $user): array
+    {
+        return Order::where('receiver_user_id', $user->id)
+            ->where('order_type', OrderType::INTERNAL_TRANSFER)
+            ->whereIn('status', [OrderStatus::PENDING_PAYMENT, OrderStatus::PENDING_APPROVAL])
+            ->with(['user:id,name,email', 'receiver:id,name,email'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->toArray();
+    }
+
     public function createOrder(User $user, array $data): Order
     {
         $this->validateOrderData($data);
@@ -127,9 +138,43 @@ class OrdersService
         });
     }
 
+    public function confirmOrder(Order $order): Order
+    {
+        if (!$order->status->canBeConfirmed()) {
+            throw ValidationException::withMessages([
+                'order' => ['Order cannot be confirmed in its current status.']
+            ]);
+        }
+
+        return DB::transaction(function () use ($order) {
+            $order->update(['status' => OrderStatus::COMPLETED]);
+
+            // OrderObserver will handle transaction creation and event dispatching
+            
+            return $order->load(['receiver:id,name,email', 'topUpProvider:id,name,code', 'user:id,name,email']);
+        });
+    }
+
+    public function rejectOrder(Order $order): Order
+    {
+        if (!$order->status->canBeRejected()) {
+            throw ValidationException::withMessages([
+                'order' => ['Order cannot be rejected in its current status.']
+            ]);
+        }
+
+        return DB::transaction(function () use ($order) {
+            $order->update(['status' => OrderStatus::CANCELLED]);
+
+            event(new OrderCancelled($order));
+
+            return $order->load(['receiver:id,name,email', 'topUpProvider:id,name,code', 'user:id,name,email']);
+        });
+    }
+
     public function createWithdrawalRequest(User $user, array $data): Order
     {
-        $this->validateWithdrawalData($data);
+        // Validation is handled by CreateWithdrawalRequest
         $this->validateAmountLimit($data['amount'], OrderType::USER_WITHDRAWAL);
 
         return DB::transaction(function () use ($user, $data) {
@@ -296,6 +341,13 @@ class OrdersService
         if (!$provider->is_active) {
             throw ValidationException::withMessages([
                 'top_up_provider_id' => ['Selected top-up provider is not active.']
+            ]);
+        }
+
+        // Prevent merchants from using admin adjustment provider
+        if ($provider->code === 'admin_adjustment') {
+            throw ValidationException::withMessages([
+                'top_up_provider_id' => ['Admin adjustment provider is not available for merchant use.']
             ]);
         }
     }

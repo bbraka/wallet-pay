@@ -102,7 +102,7 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <form method="POST" action="{{ route('admin.pending-approvals.approve-withdrawal', $withdrawal) }}" style="display: inline;">
+                                                <form method="POST" action="{{ route('admin.pending-approvals.approve-withdrawal', $withdrawal->id) }}" style="display: inline;">
                                                     @csrf
                                                     <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this withdrawal?')">
                                                         <i class="fa fa-check"></i> Approve

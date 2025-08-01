@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { OrdersApi } from '../../generated/src';
+import { 
+    OrdersApi,
+    CreateMerchantWithdrawalRequest 
+} from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
-const WithdrawalPage = () => {
+interface FormData {
+    amount: string;
+    description: string;
+}
+
+const WithdrawalPage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
     
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         amount: '',
         description: ''
     });
@@ -53,9 +61,9 @@ const WithdrawalPage = () => {
             setLoading(true);
             setError('');
             
-            const withdrawalData = {
+            const withdrawalData: CreateMerchantWithdrawalRequest = {
                 amount: withdrawalAmount,
-                description: formData.description || null
+                description: formData.description || undefined
             };
 
             const ordersApi = new OrdersApi(apiConfig.getConfiguration());

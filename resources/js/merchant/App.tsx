@@ -9,12 +9,18 @@ import WalletPage from './components/wallet/WalletPage';
 import TopUpPage from './components/transactions/TopUpPage';
 import TransferPage from './components/transactions/TransferPage';
 import WithdrawalPage from './components/transactions/WithdrawalPage';
+import TransactionViewPage from './components/transactions/TransactionViewPage';
+
+// Define interface for WalletPage ref methods
+interface WalletPageRef {
+    refreshData: () => void;
+}
 
 // Wrapper component for WalletPage to handle refresh functionality
-function WalletPageWrapper() {
-    const walletPageRef = useRef();
+function WalletPageWrapper(): JSX.Element {
+    const walletPageRef = useRef<WalletPageRef>(null);
     
-    const handleRefresh = () => {
+    const handleRefresh = (): void => {
         if (walletPageRef.current && walletPageRef.current.refreshData) {
             walletPageRef.current.refreshData();
         }
@@ -27,7 +33,7 @@ function WalletPageWrapper() {
     );
 }
 
-function MerchantApp() {
+function MerchantApp(): JSX.Element {
     return (
         <AuthProvider>
             <Router basename="/merchant">
@@ -56,6 +62,13 @@ function MerchantApp() {
                         <ProtectedRoute>
                             <Layout>
                                 <WithdrawalPage />
+                            </Layout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/transaction/:orderId" element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <TransactionViewPage />
                             </Layout>
                         </ProtectedRoute>
                     } />

@@ -1,16 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const LoginPage = () => {
+interface FormData {
+    email: string;
+    password: string;
+    remember: boolean;
+}
+
+interface FormErrors {
+    email?: string;
+    password?: string;
+}
+
+const LoginPage: React.FC = () => {
     const { login, loading, error, isAuthenticated, clearError } = useAuth();
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         email: '',
         password: '',
         remember: false
     });
-    const [formErrors, setFormErrors] = useState({});
+    const [formErrors, setFormErrors] = useState<FormErrors>({});
     
     // Redirect if already authenticated
     useEffect(() => {
@@ -24,7 +35,7 @@ const LoginPage = () => {
         clearError();
     }, [clearError]);
     
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -32,7 +43,7 @@ const LoginPage = () => {
         }));
         
         // Clear field error when user starts typing
-        if (formErrors[name]) {
+        if (formErrors[name as keyof FormErrors]) {
             setFormErrors(prev => ({
                 ...prev,
                 [name]: ''
@@ -40,8 +51,8 @@ const LoginPage = () => {
         }
     };
     
-    const validateForm = () => {
-        const errors = {};
+    const validateForm = (): boolean => {
+        const errors: FormErrors = {};
         
         if (!formData.email.trim()) {
             errors.email = 'Email is required';
@@ -59,7 +70,7 @@ const LoginPage = () => {
         return Object.keys(errors).length === 0;
     };
     
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         
         if (!validateForm()) {

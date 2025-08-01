@@ -16,6 +16,6 @@
     <div id="merchant-app"></div>
     
     <!-- React App -->
-    @vite(['resources/js/merchant/App.jsx'])
+    @vite(['resources/js/merchant/App.tsx'])
 </body>
 </html>

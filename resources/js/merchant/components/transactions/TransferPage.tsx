@@ -1,19 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { OrdersApi, MerchantAuthenticationApi } from '../../generated/src';
+import { 
+    OrdersApi, 
+    MerchantAuthenticationApi,
+    CreateMerchantOrderRequest,
+    User
+} from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
-const TransferPage = () => {
+interface FormData {
+    title: string;
+    amount: string;
+    description: string;
+    receiver_user_id: string;
+}
+
+const TransferPage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [loadingUsers, setLoadingUsers] = useState(true);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [loadingUsers, setLoadingUsers] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
     
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         amount: '',
         description: '',
@@ -82,11 +94,11 @@ const TransferPage = () => {
             setLoading(true);
             setError('');
             
-            const orderData = {
+            const orderData: CreateMerchantOrderRequest = {
                 title: formData.title,
                 amount: transferAmount,
-                description: formData.description || null,
-                receiver_user_id: parseInt(formData.receiver_user_id)
+                description: formData.description || undefined,
+                receiverUserId: parseInt(formData.receiver_user_id)
             };
 
             const ordersApi = new OrdersApi(apiConfig.getConfiguration());
@@ -94,18 +106,8 @@ const TransferPage = () => {
                 createMerchantOrderRequest: orderData
             });
             
-            setSuccess(`Transfer order created successfully! Order ID: #${response.id}`);
-            
-            // Reset form
-            setFormData({
-                title: '',
-                amount: '',
-                description: '',
-                receiver_user_id: ''
-            });
-            
-            // Scroll to top to show success message
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Redirect to transaction view page
+            navigate(`/transaction/${response.id}`);
             
         } catch (err) {
             setError(err.message || 'Failed to create transfer order');

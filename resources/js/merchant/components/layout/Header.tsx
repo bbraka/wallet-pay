@@ -1,29 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, MouseEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const Header = ({ onRefreshWallet }) => {
+interface HeaderProps {
+    onRefreshWallet?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onRefreshWallet }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
 
-    const handleLogout = async () => {
+    const handleLogout = async (): Promise<void> => {
         await logout();
         navigate('/login');
     };
 
-    const formatCurrency = (amount) => {
+    const formatCurrency = (amount: number | undefined): string => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD'
         }).format(amount || 0);
     };
 
+    const handleNavigation = (e: MouseEvent<HTMLAnchorElement>, path: string): void => {
+        e.preventDefault();
+        navigate(path);
+    };
+
+    const handleDropdownToggle = (e: MouseEvent<HTMLAnchorElement>): void => {
+        e.preventDefault();
+        setDropdownOpen(!dropdownOpen);
+    };
+
+    const handleRefresh = (e: MouseEvent<HTMLAnchorElement>): void => {
+        e.preventDefault();
+        if (onRefreshWallet) {
+            onRefreshWallet();
+        }
+    };
+
     return (
         <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
             <div className="container-fluid">
-                <a className="navbar-brand" href="#" onClick={(e) => { e.preventDefault(); navigate('/wallet'); }}>
+                <a 
+                    className="navbar-brand" 
+                    href="#" 
+                    onClick={(e) => handleNavigation(e, '/wallet')}
+                >
                     <strong>User Wallet</strong>
                 </a>
 
@@ -45,7 +70,7 @@ const Header = ({ onRefreshWallet }) => {
                             <a
                                 className="nav-link"
                                 href="#"
-                                onClick={(e) => { e.preventDefault(); navigate('/wallet'); }}
+                                onClick={(e) => handleNavigation(e, '/wallet')}
                             >
                                 <i className="fas fa-wallet me-2 text-light"></i>
                                 Wallet
@@ -55,7 +80,7 @@ const Header = ({ onRefreshWallet }) => {
                             <a
                                 className="nav-link"
                                 href="#"
-                                onClick={(e) => { e.preventDefault(); navigate('/top-up'); }}
+                                onClick={(e) => handleNavigation(e, '/top-up')}
                             >
                                 <i className="fas fa-plus me-2 text-light"></i>
                                 Top Up
@@ -65,7 +90,7 @@ const Header = ({ onRefreshWallet }) => {
                             <a
                                 className="nav-link"
                                 href="#"
-                                onClick={(e) => { e.preventDefault(); navigate('/transfer'); }}
+                                onClick={(e) => handleNavigation(e, '/transfer')}
                             >
                                 <i className="fas fa-exchange-alt me-2 text-light"></i>
                                 Transfer
@@ -75,7 +100,7 @@ const Header = ({ onRefreshWallet }) => {
                             <a
                                 className="nav-link"
                                 href="#"
-                                onClick={(e) => { e.preventDefault(); navigate('/withdrawal'); }}
+                                onClick={(e) => handleNavigation(e, '/withdrawal')}
                             >
                                 <i className="fas fa-minus me-2 text-light"></i>
                                 Withdraw
@@ -86,7 +111,7 @@ const Header = ({ onRefreshWallet }) => {
                                 <a
                                     className="nav-link"
                                     href="#"
-                                    onClick={(e) => { e.preventDefault(); onRefreshWallet(); }}
+                                    onClick={handleRefresh}
                                 >
                                     <i className="fas fa-sync me-2 text-light"></i>
                                     Refresh
@@ -104,15 +129,12 @@ const Header = ({ onRefreshWallet }) => {
                                     id="navbarDropdown"
                                     role="button"
                                     aria-expanded={dropdownOpen}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        setDropdownOpen(!dropdownOpen);
-                                    }}
+                                    onClick={handleDropdownToggle}
                                 >
                                     <div className="me-2">
                                         <div className="fw-bold">{user.name}</div>
                                         <small className="text-light">
-                                            Balance: {formatCurrency(user.wallet_amount)}
+                                            Balance: {formatCurrency(user.walletAmount)}
                                         </small>
                                     </div>
                                 </a>
@@ -127,6 +149,7 @@ const Header = ({ onRefreshWallet }) => {
                                         <button
                                             className="dropdown-item"
                                             onClick={handleLogout}
+                                            type="button"
                                         >
                                             <i className="fas fa-sign-out-alt me-2"></i>
                                             Sign Out

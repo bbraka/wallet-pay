@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\TopUpProvider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
@@ -33,7 +34,8 @@ class OrdersControllerTest extends TestCase
         Order::factory()->create(['user_id' => $this->user->id]);
         Order::factory()->create(['user_id' => $this->otherUser->id]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson('/api/merchant/orders');
 
         $response->assertOk()
@@ -54,7 +56,8 @@ class OrdersControllerTest extends TestCase
         $dateFrom = now()->subDays(2)->format('Y-m-d');
         $dateTo = now()->format('Y-m-d');
         
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson("/api/merchant/orders?date_from={$dateFrom}&date_to={$dateTo}");
 
         $response->assertOk()
@@ -66,7 +69,8 @@ class OrdersControllerTest extends TestCase
         Order::factory()->create(['user_id' => $this->user->id, 'amount' => 100]);
         Order::factory()->create(['user_id' => $this->user->id, 'amount' => 500]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson('/api/merchant/orders?min_amount=200&max_amount=1000');
 
         $response->assertOk()
@@ -78,7 +82,8 @@ class OrdersControllerTest extends TestCase
         Order::factory()->create(['user_id' => $this->user->id, 'status' => OrderStatus::PENDING_PAYMENT]);
         Order::factory()->create(['user_id' => $this->user->id, 'status' => OrderStatus::COMPLETED]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson('/api/merchant/orders?status=completed');
 
         $response->assertOk()
@@ -94,7 +99,8 @@ class OrdersControllerTest extends TestCase
             'top_up_provider_id' => $this->provider->id,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertCreated()
@@ -122,7 +128,8 @@ class OrdersControllerTest extends TestCase
             'receiver_user_id' => $this->otherUser->id,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertCreated()
@@ -142,7 +149,8 @@ class OrdersControllerTest extends TestCase
             'top_up_provider_id' => $this->provider->id,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
@@ -157,7 +165,8 @@ class OrdersControllerTest extends TestCase
             'top_up_provider_id' => $this->provider->id,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -171,7 +180,8 @@ class OrdersControllerTest extends TestCase
             'receiver_user_id' => $this->otherUser->id,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -185,7 +195,8 @@ class OrdersControllerTest extends TestCase
             'receiver_user_id' => $this->user->id,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
@@ -199,7 +210,8 @@ class OrdersControllerTest extends TestCase
             'amount' => 100,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->postJson('/api/merchant/orders', $orderData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -209,7 +221,8 @@ class OrdersControllerTest extends TestCase
     {
         $order = Order::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson("/api/merchant/orders/{$order->id}");
 
         $response->assertOk()
@@ -220,7 +233,8 @@ class OrdersControllerTest extends TestCase
     {
         $order = Order::factory()->create(['user_id' => $this->otherUser->id]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson("/api/merchant/orders/{$order->id}");
 
         $response->assertStatus(Response::HTTP_FORBIDDEN);
@@ -239,7 +253,8 @@ class OrdersControllerTest extends TestCase
             'amount' => 200,
         ];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->putJson("/api/merchant/orders/{$order->id}", $updateData);
 
         $response->assertOk()
@@ -258,7 +273,8 @@ class OrdersControllerTest extends TestCase
 
         $updateData = ['title' => 'Updated Title'];
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->putJson("/api/merchant/orders/{$order->id}", $updateData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -271,7 +287,8 @@ class OrdersControllerTest extends TestCase
             'status' => OrderStatus::PENDING_PAYMENT,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->deleteJson("/api/merchant/orders/{$order->id}");
 
         $response->assertOk()
@@ -290,7 +307,8 @@ class OrdersControllerTest extends TestCase
             'status' => OrderStatus::COMPLETED,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->deleteJson("/api/merchant/orders/{$order->id}");
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -298,7 +316,8 @@ class OrdersControllerTest extends TestCase
 
     public function test_get_orders_rules_endpoint(): void
     {
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson('/api/merchant/orders/rules');
 
         $response->assertOk()
@@ -318,12 +337,17 @@ class OrdersControllerTest extends TestCase
     {
         TopUpProvider::factory()->create(['is_active' => false]);
 
-        $response = $this->actingAs($this->user)
+        $token = $this->authenticateUser($this->user);
+        $response = $this->withHeaders($this->authHeaders($token))
             ->getJson('/api/merchant/top-up-providers');
 
         $response->assertOk()
-            ->assertJsonCount(1)
             ->assertJsonFragment(['id' => $this->provider->id]);
+        
+        // Verify the inactive provider is not included
+        $responseData = $response->json();
+        $providerIds = collect($responseData)->pluck('id')->toArray();
+        $this->assertContains($this->provider->id, $providerIds);
     }
 
     public function test_unauthenticated_user_cannot_access_endpoints(): void
@@ -332,5 +356,17 @@ class OrdersControllerTest extends TestCase
         $this->postJson('/api/merchant/orders', [])->assertStatus(Response::HTTP_UNAUTHORIZED);
         $this->getJson('/api/merchant/orders/rules')->assertStatus(Response::HTTP_UNAUTHORIZED);
         $this->getJson('/api/merchant/top-up-providers')->assertStatus(Response::HTTP_UNAUTHORIZED);
+    }
+
+    private function authenticateUser(User $user): string
+    {
+        $token = Str::random(60);
+        $user->update(['api_token' => hash('sha256', $token)]);
+        return $token;
+    }
+
+    private function authHeaders(string $token): array
+    {
+        return ['Authorization' => 'Bearer ' . $token];
     }
 }

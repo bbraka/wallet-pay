@@ -73,7 +73,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use CrudTrait, HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use CrudTrait, HasFactory, Notifiable, SoftDeletes, HasRoles, HasApiTokens;
 
     /**
      * Define which columns should be shown in Backpack operations

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Merchant\CreateOrderRequest;
+use App\Http\Requests\Merchant\CreateWithdrawalRequest;
 use App\Http\Requests\Merchant\UpdateOrderRequest;
 use App\Http\Requests\Merchant\OrderIndexRequest;
 use App\Models\Order;
@@ -26,6 +27,31 @@ class OrdersController extends Controller
     public function __construct(OrdersService $ordersService)
     {
         $this->ordersService = $ordersService;
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/merchant/orders/pending-transfers",
+     *     tags={"Orders"},
+     *     summary="Get pending transfers received by the user",
+     *     operationId="getMerchantPendingTransfers",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of pending transfers received",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Order")
+     *         )
+     *     )
+     * )
+     */
+    public function pendingTransfers(): JsonResponse
+    {
+        $user = request()->user();
+        $pendingTransfers = $this->ordersService->getPendingTransfersReceived($user);
+        
+        return response()->json($pendingTransfers);
     }
 
     /**
@@ -292,7 +318,7 @@ class OrdersController extends Controller
      *     )
      * )
      */
-    public function withdrawal(CreateOrderRequest $request): JsonResponse
+    public function withdrawal(CreateWithdrawalRequest $request): JsonResponse
     {
         $user = $request->user();
         $data = $request->validated();
@@ -300,5 +326,79 @@ class OrdersController extends Controller
         $order = $this->ordersService->createWithdrawalRequest($user, $data);
         
         return response()->json($order, 201);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/merchant/orders/{order}/confirm",
+     *     tags={"Orders"},
+     *     summary="Confirm a pending order",
+     *     operationId="confirmMerchantOrder",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="order",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Order confirmed successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Order cannot be confirmed"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized to confirm this order"
+     *     )
+     * )
+     */
+    public function confirm(Order $order): JsonResponse
+    {
+        $this->authorize('confirm', $order);
+        
+        $confirmedOrder = $this->ordersService->confirmOrder($order);
+        
+        return response()->json($confirmedOrder);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/merchant/orders/{order}/reject",
+     *     tags={"Orders"},
+     *     summary="Reject a pending order",
+     *     operationId="rejectMerchantOrder",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="order",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Order rejected successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Order cannot be rejected"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized to reject this order"
+     *     )
+     * )
+     */
+    public function reject(Order $order): JsonResponse
+    {
+        $this->authorize('reject', $order);
+        
+        $rejectedOrder = $this->ordersService->rejectOrder($order);
+        
+        return response()->json($rejectedOrder);
     }
 }

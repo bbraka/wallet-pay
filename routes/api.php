@@ -25,12 +25,15 @@ Route::prefix('merchant')->name('merchant.')->group(function () {
         
         // Orders CRUD
         Route::get('/orders', [OrdersController::class, 'index'])->name('orders.index');
+        Route::get('/orders/pending-transfers', [OrdersController::class, 'pendingTransfers'])->name('orders.pendingTransfers');
         Route::post('/orders', [OrdersController::class, 'store'])->name('orders.store');
         Route::post('/orders/withdrawal', [OrdersController::class, 'withdrawal'])->name('orders.withdrawal');
         Route::get('/orders/rules', [OrdersController::class, 'rules'])->name('orders.rules');
         Route::get('/orders/{order}', [OrdersController::class, 'show'])->name('orders.show')->where('order', '[0-9]+');
         Route::put('/orders/{order}', [OrdersController::class, 'update'])->name('orders.update')->where('order', '[0-9]+');
         Route::delete('/orders/{order}', [OrdersController::class, 'destroy'])->name('orders.destroy')->where('order', '[0-9]+');
+        Route::post('/orders/{order}/confirm', [OrdersController::class, 'confirm'])->name('orders.confirm')->where('order', '[0-9]+');
+        Route::post('/orders/{order}/reject', [OrdersController::class, 'reject'])->name('orders.reject')->where('order', '[0-9]+');
         
         // Top-up providers
         Route::get('/top-up-providers', [TopUpProvidersController::class, 'index'])->name('top-up-providers.index');

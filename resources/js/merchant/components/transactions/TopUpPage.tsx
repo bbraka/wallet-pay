@@ -1,19 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { OrdersApi, TopUpProvidersApi } from '../../generated/src';
+import { 
+    OrdersApi, 
+    TopUpProvidersApi, 
+    CreateMerchantOrderRequest,
+    TopUpProvider 
+} from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
-const TopUpPage = () => {
+interface FormData {
+    title: string;
+    amount: string;
+    description: string;
+    top_up_provider_id: string;
+    provider_reference: string;
+}
+
+const TopUpPage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [providers, setProviders] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [loadingProviders, setLoadingProviders] = useState(true);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [providers, setProviders] = useState<TopUpProvider[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [loadingProviders, setLoadingProviders] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
     
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         amount: '',
         description: '',
@@ -25,7 +38,7 @@ const TopUpPage = () => {
         loadProviders();
     }, []);
 
-    const loadProviders = async () => {
+    const loadProviders = async (): Promise<void> => {
         try {
             setLoadingProviders(true);
             const topUpApi = new TopUpProvidersApi(apiConfig.getConfiguration());
@@ -38,7 +51,7 @@ const TopUpPage = () => {
         }
     };
 
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string): void => {
         setFormData(prev => ({
             ...prev,
             [field]: value
@@ -51,7 +64,7 @@ const TopUpPage = () => {
 
     const selectedProvider = providers.find(p => p.id === parseInt(formData.top_up_provider_id));
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         
         if (!formData.title || !formData.amount || !formData.top_up_provider_id) {
@@ -73,12 +86,12 @@ const TopUpPage = () => {
             setLoading(true);
             setError('');
             
-            const orderData = {
+            const orderData: CreateMerchantOrderRequest = {
                 title: formData.title,
                 amount: parseFloat(formData.amount),
-                description: formData.description || null,
-                top_up_provider_id: parseInt(formData.top_up_provider_id),
-                provider_reference: formData.provider_reference || null
+                description: formData.description || undefined,
+                topUpProviderId: parseInt(formData.top_up_provider_id),
+                providerReference: formData.provider_reference || undefined
             };
 
             const ordersApi = new OrdersApi(apiConfig.getConfiguration());
@@ -107,7 +120,7 @@ const TopUpPage = () => {
         }
     };
 
-    const handleGoBack = () => {
+    const handleGoBack = (): void => {
         navigate('/wallet');
     };
 
@@ -243,7 +256,9 @@ const TopUpPage = () => {
                                         disabled={loading}
                                     >
                                         <option value="">Select payment method...</option>
-                                        {providers.map(provider => (
+                                        {providers
+                                            .filter(provider => provider.code !== 'admin_adjustment')
+                                            .map(provider => (
                                             <option key={provider.id} value={provider.id}>
                                                 {provider.name}
                                                 {provider.description && ` - ${provider.description}`}

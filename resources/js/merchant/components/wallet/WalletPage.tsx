@@ -1,15 +1,33 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, ChangeEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { OrdersApi, MerchantAuthenticationApi } from '../../generated/src';
+import { OrdersApi, MerchantAuthenticationApi, Order, User } from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
-const WalletPage = forwardRef((props, ref) => {
+interface WalletPageRef {
+    refreshData: () => void;
+}
+
+interface Filters {
+    date_from: string;
+    date_to: string;
+    status: string;
+    min_amount: string;
+    max_amount: string;
+}
+
+interface WalletPageProps {}
+
+const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
     const { user } = useAuth();
-    const [currentUser, setCurrentUser] = useState(user);
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [filters, setFilters] = useState({
+    const navigate = useNavigate();
+    const [currentUser, setCurrentUser] = useState<User | null>(user);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [pendingTransfers, setPendingTransfers] = useState<Order[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [pendingTransfersLoading, setPendingTransfersLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string>('');
+    const [filters, setFilters] = useState<Filters>({
         date_from: '',
         date_to: '',
         status: '',
@@ -20,6 +38,7 @@ const WalletPage = forwardRef((props, ref) => {
     useEffect(() => {
         loadUserData();
         loadOrders();
+        loadPendingTransfers();
     }, []);
 
     // Expose refresh function to parent component
@@ -27,10 +46,11 @@ const WalletPage = forwardRef((props, ref) => {
         refreshData: () => {
             loadUserData();
             loadOrders();
+            loadPendingTransfers();
         }
     }));
 
-    const loadUserData = async () => {
+    const loadUserData = async (): Promise<void> => {
         try {
             const authApi = new MerchantAuthenticationApi(apiConfig.getConfiguration());
             const response = await authApi.getMerchantUser();
@@ -43,7 +63,7 @@ const WalletPage = forwardRef((props, ref) => {
         }
     };
 
-    const loadOrders = async (filterParams = {}) => {
+    const loadOrders = async (filterParams: Partial<Filters> = {}): Promise<void> => {
         try {
             setLoading(true);
             setError('');
@@ -55,25 +75,41 @@ const WalletPage = forwardRef((props, ref) => {
             });
             
             setOrders(response.data || []);
-        } catch (err) {
+        } catch (err: any) {
             setError(err.message || 'Failed to load orders');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleFilterChange = (field, value) => {
+    const loadPendingTransfers = async (): Promise<void> => {
+        try {
+            setPendingTransfersLoading(true);
+            
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            const response = await ordersApi.getMerchantPendingTransfers();
+            
+            setPendingTransfers(Array.isArray(response) ? response : []);
+        } catch (err: any) {
+            console.error('Failed to load pending transfers:', err);
+            setPendingTransfers([]);
+        } finally {
+            setPendingTransfersLoading(false);
+        }
+    };
+
+    const handleFilterChange = (field: keyof Filters, value: string): void => {
         const newFilters = { ...filters, [field]: value };
         setFilters(newFilters);
     };
 
-    const handleFilterSubmit = (e) => {
+    const handleFilterSubmit = (e: FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
         loadOrders(filters);
     };
 
-    const handleFilterReset = () => {
-        const resetFilters = {
+    const handleFilterReset = (): void => {
+        const resetFilters: Filters = {
             date_from: '',
             date_to: '',
             status: '',
@@ -84,14 +120,14 @@ const WalletPage = forwardRef((props, ref) => {
         loadOrders(resetFilters);
     };
 
-    const formatAmount = (amount) => {
+    const formatAmount = (amount: number): string => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD'
         }).format(amount);
     };
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string): string => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -101,7 +137,7 @@ const WalletPage = forwardRef((props, ref) => {
         });
     };
 
-    const getStatusBadgeClass = (status) => {
+    const getStatusBadgeClass = (status: string): string => {
         switch (status) {
             case 'completed':
                 return 'badge-success';
@@ -118,7 +154,7 @@ const WalletPage = forwardRef((props, ref) => {
         }
     };
 
-    const getOrderTypeDisplay = (orderType) => {
+    const getOrderTypeDisplay = (orderType: string): string => {
         switch (orderType) {
             case 'internal_transfer':
                 return 'Transfer';
@@ -132,6 +168,94 @@ const WalletPage = forwardRef((props, ref) => {
                 return 'Admin Withdrawal';
             default:
                 return orderType;
+        }
+    };
+
+    const handleViewTransaction = (orderId: number): void => {
+        navigate(`/transaction/${orderId}`);
+    };
+
+    const handleCancelOrder = async (order: Order): Promise<void> => {
+        const confirmed = window.confirm(
+            `Are you sure you want to cancel this ${getOrderTypeDisplay(order.orderType)}?\n\n` +
+            `Order ID: #${order.id}\n` +
+            `Amount: ${formatAmount(order.amount)}\n` +
+            `Title: ${order.title}\n\n` +
+            `This action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            await ordersApi.cancelMerchantOrder({
+                order: order.id
+            });
+            
+            // Show success message
+            alert('Order has been successfully cancelled.');
+            
+            // Refresh the orders list
+            loadOrders();
+            
+        } catch (err: any) {
+            alert(`Failed to cancel order: ${err.message || 'Unknown error'}`);
+        }
+    };
+
+    const handleConfirmTransfer = async (order: Order): Promise<void> => {
+        const confirmed = window.confirm(
+            `Are you sure you want to confirm this transfer?\n\n` +
+            `From: ${order.user?.name || order.user?.email || 'Unknown'}\n` +
+            `Amount: ${formatAmount(order.amount)}\n` +
+            `Title: ${order.title}\n\n` +
+            `This will add the funds to your wallet.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            await ordersApi.confirmMerchantOrder({
+                order: order.id
+            });
+            
+            alert('Transfer has been confirmed successfully!');
+            
+            // Refresh data
+            loadUserData();
+            loadOrders();
+            loadPendingTransfers();
+            
+        } catch (err: any) {
+            alert(`Failed to confirm transfer: ${err.message || 'Unknown error'}`);
+        }
+    };
+
+    const handleRejectTransfer = async (order: Order): Promise<void> => {
+        const confirmed = window.confirm(
+            `Are you sure you want to reject this transfer?\n\n` +
+            `From: ${order.user?.name || order.user?.email || 'Unknown'}\n` +
+            `Amount: ${formatAmount(order.amount)}\n` +
+            `Title: ${order.title}\n\n` +
+            `This action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            await ordersApi.rejectMerchantOrder({
+                order: order.id
+            });
+            
+            alert('Transfer has been rejected successfully.');
+            
+            // Refresh data
+            loadPendingTransfers();
+            
+        } catch (err: any) {
+            alert(`Failed to reject transfer: ${err.message || 'Unknown error'}`);
         }
     };
 
@@ -173,7 +297,6 @@ const WalletPage = forwardRef((props, ref) => {
                 </div>
             </div>
 
-
             {/* Filters */}
             <div className="row mb-4">
                 <div className="col-12">
@@ -189,7 +312,7 @@ const WalletPage = forwardRef((props, ref) => {
                                             className="form-control"
                                             id="date_from"
                                             value={filters.date_from}
-                                            onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleFilterChange('date_from', e.target.value)}
                                         />
                                     </div>
                                     <div className="col-md-6 col-lg-3 mb-3">
@@ -199,7 +322,7 @@ const WalletPage = forwardRef((props, ref) => {
                                             className="form-control"
                                             id="date_to"
                                             value={filters.date_to}
-                                            onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleFilterChange('date_to', e.target.value)}
                                         />
                                     </div>
                                     <div className="col-md-6 col-lg-2 mb-3">
@@ -208,7 +331,7 @@ const WalletPage = forwardRef((props, ref) => {
                                             className="form-control"
                                             id="status"
                                             value={filters.status}
-                                            onChange={(e) => handleFilterChange('status', e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleFilterChange('status', e.target.value)}
                                         >
                                             <option value="">All Status</option>
                                             <option value="pending_payment">Pending Payment</option>
@@ -227,7 +350,7 @@ const WalletPage = forwardRef((props, ref) => {
                                             id="min_amount"
                                             placeholder="0.00"
                                             value={filters.min_amount}
-                                            onChange={(e) => handleFilterChange('min_amount', e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleFilterChange('min_amount', e.target.value)}
                                         />
                                     </div>
                                     <div className="col-md-6 col-lg-2 mb-3">
@@ -239,7 +362,7 @@ const WalletPage = forwardRef((props, ref) => {
                                             id="max_amount"
                                             placeholder="0.00"
                                             value={filters.max_amount}
-                                            onChange={(e) => handleFilterChange('max_amount', e.target.value)}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleFilterChange('max_amount', e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -287,6 +410,92 @@ const WalletPage = forwardRef((props, ref) => {
                 </div>
             )}
 
+            {/* Pending Transfers Section */}
+            {!pendingTransfersLoading && pendingTransfers.length > 0 && (
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="card border-warning">
+                            <div className="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-clock mr-2"></i>
+                                    Pending Transfers
+                                </h5>
+                                <span className="badge badge-dark">{pendingTransfers.length} pending</span>
+                            </div>
+                            <div className="card-body p-0">
+                                <div className="table-responsive">
+                                    <table className="table table-hover mb-0">
+                                        <thead className="thead-light">
+                                            <tr>
+                                                <th>From</th>
+                                                <th>Title</th>
+                                                <th>Amount</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pendingTransfers.map((transfer) => (
+                                                <tr key={transfer.id}>
+                                                    <td>
+                                                        <div>
+                                                            <strong>{transfer.user?.name || 'Unknown'}</strong>
+                                                        </div>
+                                                        <small className="text-muted">
+                                                            {transfer.user?.email || 'No email'}
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <div className="text-truncate" style={{ maxWidth: '200px' }}>
+                                                            {transfer.title}
+                                                        </div>
+                                                        {transfer.description && (
+                                                            <small className="text-muted d-block text-truncate" style={{ maxWidth: '200px' }}>
+                                                                {transfer.description}
+                                                            </small>
+                                                        )}
+                                                    </td>
+                                                    <td className="font-weight-bold text-success">
+                                                        {formatAmount(transfer.amount)}
+                                                    </td>
+                                                    <td>
+                                                        <small>
+                                                            {formatDate(transfer.createdAt)}
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <div className="btn-group btn-group-sm" role="group">
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn btn-success"
+                                                                onClick={() => handleConfirmTransfer(transfer)}
+                                                                title="Accept Transfer"
+                                                            >
+                                                                <i className="fas fa-check mr-1"></i>
+                                                                Accept
+                                                            </button>
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn btn-danger"
+                                                                onClick={() => handleRejectTransfer(transfer)}
+                                                                title="Reject Transfer"
+                                                            >
+                                                                <i className="fas fa-times mr-1"></i>
+                                                                Reject
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Transactions Table */}
             <div className="row">
                 <div className="col-12">
@@ -307,7 +516,7 @@ const WalletPage = forwardRef((props, ref) => {
                                     <table className="table table-hover mb-0">
                                         <thead className="thead-light">
                                             <tr>
-                                                <th>ID</th>
+                                                <th>Order ID</th>
                                                 <th>Title</th>
                                                 <th>Type</th>
                                                 <th>Amount</th>
@@ -353,7 +562,7 @@ const WalletPage = forwardRef((props, ref) => {
                                                             <button 
                                                                 type="button" 
                                                                 className="btn btn-outline-primary"
-                                                                onClick={() => {/* View details functionality */}}
+                                                                onClick={() => handleViewTransaction(order.id)}
                                                                 title="View Details"
                                                             >
                                                                 <i className="fas fa-eye"></i>
@@ -362,7 +571,7 @@ const WalletPage = forwardRef((props, ref) => {
                                                                 <button 
                                                                     type="button" 
                                                                     className="btn btn-outline-danger"
-                                                                    onClick={() => {/* Cancel order functionality */}}
+                                                                    onClick={() => handleCancelOrder(order)}
                                                                     title="Cancel Order"
                                                                 >
                                                                     <i className="fas fa-times"></i>

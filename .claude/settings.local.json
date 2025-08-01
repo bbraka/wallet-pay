@@ -70,7 +70,10 @@
       "Bash(npm run generate-api:*)",
       "WebFetch(domain:stackoverflow.com)",
       "Bash(time:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(mv:*)",
+      "Bash(fuser:*)",
+      "mcp__filesystem__read_text_file"
     ]
   },
   "enableAllProjectMcpServers": true,
@@ -80,5 +83,6 @@
     "filesystem",
     "curl",
     "github"
-  ]
+  ],
+  "$schema": "https://json.schemastore.org/claude-code-settings.json"
 }

@@ -41,22 +41,39 @@ abstract class DuskTestCase extends BaseTestCase
         
         // Kill any existing server on port 8089
         exec('fuser -k 8089/tcp 2>/dev/null || true');
+        sleep(1);
         
-        // Start new server with test environment
+        // Start new server with test environment - use nohup for better process management
         $command = sprintf(
-            'APP_ENV=dusk.local php artisan serve --host=0.0.0.0 --port=8089 > /dev/null 2>&1 & echo $!'
+            'nohup php artisan serve --host=0.0.0.0 --port=8089 --env=dusk.local > /tmp/dusk_server.log 2>&1 & echo $!'
         );
         
         $pid = exec($command);
+        static::$serverProcess = $pid;
         echo "Started test server with PID: $pid\n";
         
-        // Give server time to start
-        sleep(3);
+        // Wait for server to be ready with timeout
+        $maxAttempts = 10;
+        $attempt = 0;
         
-        // Check if server is running
-        $checkCommand = 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8089';
-        $httpCode = exec($checkCommand);
-        echo "Test server HTTP response code: $httpCode\n";
+        while ($attempt < $maxAttempts) {
+            $attempt++;
+            sleep(1);
+            
+            // Check if server is responding
+            $checkCommand = 'curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 --max-time 5 http://localhost:8089 2>/dev/null || echo "timeout"';
+            $httpCode = exec($checkCommand);
+            
+            if ($httpCode !== 'timeout' && $httpCode !== '000') {
+                echo "Test server ready after {$attempt} attempts. HTTP code: $httpCode\n";
+                break;
+            }
+            
+            if ($attempt === $maxAttempts) {
+                echo "Test server failed to start after $maxAttempts attempts\n";
+                exec("cat /tmp/dusk_server.log");
+            }
+        }
         
         register_shutdown_function(function () use ($pid) {
             exec("kill -9 $pid 2>/dev/null");
