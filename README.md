@@ -32,13 +32,10 @@ docker compose up --build -d
 
 ### Troubleshooting
 
-**Database Issues**: `docker compose logs mysql` then `docker compose restart mysql`
+**Database Issues**: 
 
-**Migration/Test Issues**: Use full rebuild (recreates all databases and runs migrations):
-```bash
-docker compose down -v
-docker compose up --build -d
-```
+`docker compose exec app php artisan migrate:refresh`
+`docker compose exec app php artisan db:seed`
 
 ## Development
 
@@ -49,6 +46,24 @@ docker compose up --build -d
 - E2E: `docker compose exec app php artisan dusk`
 
 **Ports**: App (8000), Database (3307)
+
+## Database Connection
+
+**Default Database Credentials:**
+- **Database**: `user_wallet_app`
+- **Username**: `user_wallet_user` 
+- **Password**: `your_database_password` (set in .env file)
+- **Host**: `localhost` (from host machine) / `mysql` (from within containers)
+- **Port**: `3307` (from host machine) / `3306` (from within containers)
+
+**Connection Examples:**
+```bash
+# From host machine (external tools like MySQL Workbench, phpMyAdmin)
+mysql -h localhost -P 3307 -u user_wallet_user -p user_wallet_app
+
+# From within Docker containers
+mysql -h mysql -P 3306 -u user_wallet_user -p user_wallet_app
+```
 
 ## Core Models
 

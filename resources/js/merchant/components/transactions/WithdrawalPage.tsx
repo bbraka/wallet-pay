@@ -24,7 +24,7 @@ const WithdrawalPage: React.FC = () => {
         description: ''
     });
 
-    const handleInputChange = (field, value) => {
+    const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({
             ...prev,
             [field]: value
@@ -39,7 +39,7 @@ const WithdrawalPage: React.FC = () => {
     const currentBalance = parseFloat(user?.walletAmount || 0);
     const balanceAfterWithdrawal = currentBalance - withdrawalAmount;
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
         if (!formData.amount) {
@@ -79,8 +79,10 @@ const WithdrawalPage: React.FC = () => {
                 description: ''
             });
             
-            // Scroll to top to show success message
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Show success message briefly then redirect to wallet
+            setTimeout(() => {
+                navigate('/wallet');
+            }, 2000);
             
         } catch (err) {
             setError(err.message || 'Failed to create withdrawal request');
@@ -226,7 +228,7 @@ const WithdrawalPage: React.FC = () => {
                                                 id="amount"
                                                 placeholder="0.00"
                                                 value={formData.amount}
-                                                onChange={(e) => handleInputChange('amount', e.target.value)}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('amount', e.target.value)}
                                                 required
                                                 disabled={loading}
                                             />
@@ -251,7 +253,7 @@ const WithdrawalPage: React.FC = () => {
                                             rows="3"
                                             placeholder="Describe the reason for this withdrawal request..."
                                             value={formData.description}
-                                            onChange={(e) => handleInputChange('description', e.target.value)}
+                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('description', e.target.value)}
                                             disabled={loading}
                                         ></textarea>
                                     </div>

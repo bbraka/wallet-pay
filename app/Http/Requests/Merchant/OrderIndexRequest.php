@@ -20,7 +20,24 @@ class OrderIndexRequest extends FormRequest
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'min_amount' => ['nullable', 'numeric', 'min:0', 'lte:max_amount'],
             'max_amount' => ['nullable', 'numeric', 'min:0', 'gte:min_amount'],
-            'status' => ['nullable', Rule::enum(OrderStatus::class)],
+            'status' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (is_string($value)) {
+                        if (!in_array($value, array_column(OrderStatus::cases(), 'value'))) {
+                            $fail('The selected status is invalid.');
+                        }
+                    } elseif (is_array($value)) {
+                        foreach ($value as $status) {
+                            if (!in_array($status, array_column(OrderStatus::cases(), 'value'))) {
+                                $fail('The selected status is invalid.');
+                            }
+                        }
+                    } else {
+                        $fail('The status must be a string or array.');
+                    }
+                }
+            ],
             'receiver_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
         ];
     }

@@ -32,6 +32,13 @@ Route::group([
     Route::post('pending-approvals/deny-withdrawal/{order}', 'PendingApprovalsController@denyWithdrawal')->name('admin.pending-approvals.deny-withdrawal');
     Route::post('pending-approvals/bulk-approve-withdrawals', 'PendingApprovalsController@bulkApproveWithdrawals')->name('admin.pending-approvals.bulk-approve-withdrawals');
     Route::post('pending-approvals/bulk-deny-withdrawals', 'PendingApprovalsController@bulkDenyWithdrawals')->name('admin.pending-approvals.bulk-deny-withdrawals');
+    
+    // Payment approval routes
+    Route::post('pending-approvals/approve-payment/{order}', 'PendingApprovalsController@approvePayment')
+        ->name('admin.pending-approvals.approve-payment');
+    Route::post('pending-approvals/reject-payment/{order}', 'PendingApprovalsController@rejectPayment')->name('admin.pending-approvals.reject-payment');
+    Route::post('pending-approvals/bulk-approve-payments', 'PendingApprovalsController@bulkApprovePayments')->name('admin.pending-approvals.bulk-approve-payments');
+    Route::post('pending-approvals/bulk-reject-payments', 'PendingApprovalsController@bulkRejectPayments')->name('admin.pending-approvals.bulk-reject-payments');
 }); // this should be the absolute last line of this file
 
 /**

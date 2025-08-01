@@ -110,8 +110,10 @@ const TopUpPage: React.FC = () => {
                 provider_reference: ''
             });
             
-            // Scroll to top to show success message
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Show success message briefly then redirect to wallet
+            setTimeout(() => {
+                navigate('/wallet');
+            }, 2000);
             
         } catch (err) {
             setError(err.message || 'Failed to create top-up order');

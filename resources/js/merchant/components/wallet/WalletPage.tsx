@@ -1,7 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { OrdersApi, MerchantAuthenticationApi, Order, User } from '../../generated/src';
+import { OrdersApi, MerchantAuthenticationApi, MerchantTransactionsApi, Order, User, Transaction, GetMerchantOrders200Response } from '../../generated/src';
 import { apiConfig } from '../../config/api';
 
 interface WalletPageRef {
@@ -12,6 +12,7 @@ interface Filters {
     date_from: string;
     date_to: string;
     status: string;
+    type: string;
     min_amount: string;
     max_amount: string;
 }
@@ -22,31 +23,36 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [currentUser, setCurrentUser] = useState<User | null>(user);
-    const [orders, setOrders] = useState<Order[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [pendingTransfers, setPendingTransfers] = useState<Order[]>([]);
+    const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [pendingTransfersLoading, setPendingTransfersLoading] = useState<boolean>(true);
+    const [pendingOrdersLoading, setPendingOrdersLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [filters, setFilters] = useState<Filters>({
         date_from: '',
         date_to: '',
         status: '',
+        type: '',
         min_amount: '',
         max_amount: ''
     });
 
     useEffect(() => {
         loadUserData();
-        loadOrders();
+        loadTransactions();
         loadPendingTransfers();
+        loadPendingOrders();
     }, []);
 
     // Expose refresh function to parent component
     useImperativeHandle(ref, () => ({
         refreshData: () => {
             loadUserData();
-            loadOrders();
+            loadTransactions();
             loadPendingTransfers();
+            loadPendingOrders();
         }
     }));
 
@@ -63,20 +69,26 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
         }
     };
 
-    const loadOrders = async (filterParams: Partial<Filters> = {}): Promise<void> => {
+    const loadTransactions = async (filterParams: Partial<Filters> = {}): Promise<void> => {
         try {
             setLoading(true);
             setError('');
             
-            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
-            const response = await ordersApi.getMerchantOrders({
-                ...filters,
-                ...filterParams
+            const transactionsApi = new MerchantTransactionsApi(apiConfig.getConfiguration());
+            const currentFilters = { ...filters, ...filterParams };
+            
+            const response = await transactionsApi.getMerchantTransactions({
+                dateFrom: currentFilters.date_from ? new Date(currentFilters.date_from) : undefined,
+                dateTo: currentFilters.date_to ? new Date(currentFilters.date_to) : undefined,
+                status: currentFilters.status || undefined,
+                type: currentFilters.type || undefined,
+                minAmount: currentFilters.min_amount ? parseFloat(currentFilters.min_amount) : undefined,
+                maxAmount: currentFilters.max_amount ? parseFloat(currentFilters.max_amount) : undefined,
             });
             
-            setOrders(response.data || []);
+            setTransactions(response.data || []);
         } catch (err: any) {
-            setError(err.message || 'Failed to load orders');
+            setError(err.message || 'Failed to load transactions');
         } finally {
             setLoading(false);
         }
@@ -98,6 +110,32 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
         }
     };
 
+    const loadPendingOrders = async (): Promise<void> => {
+        try {
+            setPendingOrdersLoading(true);
+            
+            const ordersApi = new OrdersApi(apiConfig.getConfiguration());
+            
+            // Make two separate API calls since the generated client doesn't handle arrays properly
+            const [pendingPaymentResponse, pendingApprovalResponse] = await Promise.all([
+                ordersApi.getMerchantOrders({ status: 'pending_payment' }),
+                ordersApi.getMerchantOrders({ status: 'pending_approval' })
+            ]);
+            
+            // Combine the results
+            const pendingPaymentOrders = pendingPaymentResponse?.data || [];
+            const pendingApprovalOrders = pendingApprovalResponse?.data || [];
+            const combinedOrders = [...pendingPaymentOrders, ...pendingApprovalOrders];
+            
+            setPendingOrders(combinedOrders);
+        } catch (err: any) {
+            console.error('Failed to load pending orders:', err);
+            setPendingOrders([]);
+        } finally {
+            setPendingOrdersLoading(false);
+        }
+    };
+
     const handleFilterChange = (field: keyof Filters, value: string): void => {
         const newFilters = { ...filters, [field]: value };
         setFilters(newFilters);
@@ -105,7 +143,7 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
 
     const handleFilterSubmit = (e: FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
-        loadOrders(filters);
+        loadTransactions(filters);
     };
 
     const handleFilterReset = (): void => {
@@ -113,11 +151,12 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
             date_from: '',
             date_to: '',
             status: '',
+            type: '',
             min_amount: '',
             max_amount: ''
         };
         setFilters(resetFilters);
-        loadOrders(resetFilters);
+        loadTransactions(resetFilters);
     };
 
     const formatAmount = (amount: number): string => {
@@ -171,8 +210,8 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
         }
     };
 
-    const handleViewTransaction = (orderId: number): void => {
-        navigate(`/transaction/${orderId}`);
+    const handleViewTransaction = (transactionId: number): void => {
+        navigate(`/transaction/${transactionId}`);
     };
 
     const handleCancelOrder = async (order: Order): Promise<void> => {
@@ -195,8 +234,9 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
             // Show success message
             alert('Order has been successfully cancelled.');
             
-            // Refresh the orders list
-            loadOrders();
+            // Refresh the data
+            loadTransactions();
+            loadPendingOrders();
             
         } catch (err: any) {
             alert(`Failed to cancel order: ${err.message || 'Unknown error'}`);
@@ -224,8 +264,9 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
             
             // Refresh data
             loadUserData();
-            loadOrders();
+            loadTransactions();
             loadPendingTransfers();
+            loadPendingOrders();
             
         } catch (err: any) {
             alert(`Failed to confirm transfer: ${err.message || 'Unknown error'}`);
@@ -259,7 +300,7 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
         }
     };
 
-    if (loading && orders.length === 0) {
+    if (loading && transactions.length === 0) {
         return (
             <div className="container-fluid py-4">
                 <div className="row justify-content-center">
@@ -305,7 +346,7 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                             <h5 className="card-title">Filter Transactions</h5>
                             <form onSubmit={handleFilterSubmit}>
                                 <div className="row">
-                                    <div className="col-md-6 col-lg-3 mb-3">
+                                    <div className="col-md-6 col-lg-2 mb-3">
                                         <label htmlFor="date_from" className="form-label">From Date</label>
                                         <input
                                             type="date"
@@ -315,7 +356,7 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                                             onChange={(e: ChangeEvent<HTMLInputElement>) => handleFilterChange('date_from', e.target.value)}
                                         />
                                     </div>
-                                    <div className="col-md-6 col-lg-3 mb-3">
+                                    <div className="col-md-6 col-lg-2 mb-3">
                                         <label htmlFor="date_to" className="form-label">To Date</label>
                                         <input
                                             type="date"
@@ -334,11 +375,21 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                                             onChange={(e: ChangeEvent<HTMLSelectElement>) => handleFilterChange('status', e.target.value)}
                                         >
                                             <option value="">All Status</option>
-                                            <option value="pending_payment">Pending Payment</option>
-                                            <option value="pending_approval">Pending Approval</option>
-                                            <option value="completed">Completed</option>
+                                            <option value="active">Active</option>
                                             <option value="cancelled">Cancelled</option>
-                                            <option value="refunded">Refunded</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-6 col-lg-2 mb-3">
+                                        <label htmlFor="type" className="form-label">Type</label>
+                                        <select
+                                            className="form-control"
+                                            id="type"
+                                            value={filters.type}
+                                            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleFilterChange('type', e.target.value)}
+                                        >
+                                            <option value="">All Types</option>
+                                            <option value="credit">Credit</option>
+                                            <option value="debit">Debit</option>
                                         </select>
                                     </div>
                                     <div className="col-md-6 col-lg-2 mb-3">
@@ -496,29 +547,26 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                 </div>
             )}
 
-            {/* Transactions Table */}
-            <div className="row">
-                <div className="col-12">
-                    <div className="card">
-                        <div className="card-header d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">Transaction History</h5>
-                            <span className="badge badge-info">{orders.length} transactions</span>
-                        </div>
-                        <div className="card-body p-0">
-                            {orders.length === 0 ? (
-                                <div className="text-center py-5">
-                                    <i className="fas fa-file-invoice fa-3x text-muted mb-3"></i>
-                                    <h5 className="text-muted">No transactions found</h5>
-                                    <p className="text-muted">Start by making your first transaction</p>
-                                </div>
-                            ) : (
+            {/* Pending Orders Section */}
+            {!pendingOrdersLoading && pendingOrders.length > 0 && (
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="card border-info">
+                            <div className="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-shopping-cart mr-2"></i>
+                                    Your Pending Orders
+                                </h5>
+                                <span className="badge badge-light text-dark">{pendingOrders.length} pending</span>
+                            </div>
+                            <div className="card-body p-0">
                                 <div className="table-responsive">
                                     <table className="table table-hover mb-0">
                                         <thead className="thead-light">
                                             <tr>
                                                 <th>Order ID</th>
-                                                <th>Title</th>
                                                 <th>Type</th>
+                                                <th>Title</th>
                                                 <th>Amount</th>
                                                 <th>Status</th>
                                                 <th>Date</th>
@@ -526,9 +574,14 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {orders.map((order) => (
+                                            {pendingOrders.map((order) => (
                                                 <tr key={order.id}>
                                                     <td className="font-weight-bold">#{order.id}</td>
+                                                    <td>
+                                                        <span className="badge badge-primary">
+                                                            {getOrderTypeDisplay(order.orderType)}
+                                                        </span>
+                                                    </td>
                                                     <td>
                                                         <div className="text-truncate" style={{ maxWidth: '200px' }}>
                                                             {order.title}
@@ -539,12 +592,7 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                                                             </small>
                                                         )}
                                                     </td>
-                                                    <td>
-                                                        <span className="badge badge-light">
-                                                            {getOrderTypeDisplay(order.orderType)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="font-weight-bold">
+                                                    <td className="font-weight-bold text-warning">
                                                         {formatAmount(order.amount)}
                                                     </td>
                                                     <td>
@@ -561,22 +609,97 @@ const WalletPage = forwardRef<WalletPageRef, WalletPageProps>((props, ref) => {
                                                         <div className="btn-group btn-group-sm" role="group">
                                                             <button 
                                                                 type="button" 
+                                                                className="btn btn-outline-danger"
+                                                                onClick={() => handleCancelOrder(order)}
+                                                                title="Cancel Order"
+                                                            >
+                                                                <i className="fas fa-times mr-1"></i>
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Transactions Table */}
+            <div className="row">
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">Transaction History</h5>
+                            <span className="badge badge-info">{transactions.length} transactions</span>
+                        </div>
+                        <div className="card-body p-0">
+                            {transactions.length === 0 ? (
+                                <div className="text-center py-5">
+                                    <i className="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                                    <h5 className="text-muted">No transactions found</h5>
+                                    <p className="text-muted">Start by making your first transaction</p>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="table table-hover mb-0">
+                                        <thead className="thead-light">
+                                            <tr>
+                                                <th>Transaction ID</th>
+                                                <th>Description</th>
+                                                <th>Type</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transactions.map((transaction) => (
+                                                <tr key={transaction.id}>
+                                                    <td className="font-weight-bold">#{transaction.id}</td>
+                                                    <td>
+                                                        <div className="text-truncate" style={{ maxWidth: '200px' }}>
+                                                            {transaction.description || 'No description'}
+                                                        </div>
+                                                        {transaction.orderId && (
+                                                            <small className="text-muted d-block">
+                                                                Order: #{transaction.orderId}
+                                                            </small>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`badge ${transaction.type === 'credit' ? 'badge-success' : 'badge-warning'}`}>
+                                                            {transaction.type.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td className={`font-weight-bold ${transaction.type === 'credit' ? 'text-success' : 'text-danger'}`}>
+                                                        {transaction.type === 'debit' ? '-' : '+'}{formatAmount(transaction.amount)}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`badge ${transaction.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>
+                                                            {transaction.status.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <small>
+                                                            {formatDate(transaction.createdAt || '')}
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <div className="btn-group btn-group-sm" role="group">
+                                                            <button 
+                                                                type="button" 
                                                                 className="btn btn-outline-primary"
-                                                                onClick={() => handleViewTransaction(order.id)}
+                                                                onClick={() => handleViewTransaction(transaction.id || 0)}
                                                                 title="View Details"
                                                             >
                                                                 <i className="fas fa-eye"></i>
                                                             </button>
-                                                            {(order.status === 'pending_payment' || order.status === 'pending_approval') && (
-                                                                <button 
-                                                                    type="button" 
-                                                                    className="btn btn-outline-danger"
-                                                                    onClick={() => handleCancelOrder(order)}
-                                                                    title="Cancel Order"
-                                                                >
-                                                                    <i className="fas fa-times"></i>
-                                                                </button>
-                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>

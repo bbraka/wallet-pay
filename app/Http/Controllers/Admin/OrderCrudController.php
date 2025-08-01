@@ -379,10 +379,8 @@ class OrderCrudController extends CrudController
      */
     protected function setupUpdateOperation()
     {
-        $this->setupCreateOperation();
-        
-        // Disable editing certain fields
-        CRUD::field('user_id')->attributes(['disabled' => 'disabled']);
+        CRUD::setValidation(OrderRequest::class);
+        CRUD::setUpdateContentClass('col-md-8');
         
         // Only allow updating pending orders
         $entry = CRUD::getCurrentEntry();
@@ -390,6 +388,93 @@ class OrderCrudController extends CrudController
             CRUD::denyAccess('update');
             abort(403, 'Only pending orders can be updated.');
         }
+        
+        // Show current user info as read-only
+        CRUD::field([
+            'name' => 'current_user_info',
+            'label' => 'User',
+            'type' => 'custom_html',
+            'value' => function($entry) {
+                if (!$entry->user) return 'No user assigned';
+                return sprintf(
+                    '<div class="form-control-static"><strong>%s</strong><br><small>%s</small></div>',
+                    e($entry->user->name),
+                    e($entry->user->email)
+                );
+            },
+            'wrapper' => ['class' => 'form-group col-md-12'],
+        ]);
+
+        // Hidden field to maintain user_id for validation but not allow editing
+        CRUD::field([
+            'name' => 'user_id',
+            'type' => 'hidden',
+        ]);
+
+        CRUD::field([
+            'name' => 'order_type',
+            'type' => 'hidden',
+        ]);
+
+        CRUD::field([
+            'name' => 'top_up_provider_id',
+            'label' => 'Top-up Provider',
+            'type' => 'select_from_array',
+            'options' => TopUpProvider::where('is_active', true)->pluck('name', 'id')->toArray(),
+            'wrapper' => ['class' => 'form-group col-md-12'],
+        ]);
+
+        CRUD::field([
+            'name' => 'amount',
+            'label' => 'Amount',
+            'type' => 'number',
+            'prefix' => '$',
+            'attributes' => [
+                'step' => '0.01',
+                'min' => '0.01',
+                'max' => Order::MAX_TOP_UP_AMOUNT,
+            ],
+            'wrapper' => ['class' => 'form-group col-md-6'],
+            'hint' => 'Maximum amount: $' . number_format(Order::MAX_TOP_UP_AMOUNT, 2),
+        ]);
+
+        CRUD::field([
+            'name' => 'description',
+            'label' => 'Description (Optional)',
+            'type' => 'textarea',
+            'wrapper' => ['class' => 'form-group col-md-12'],
+            'hint' => 'Leave empty for auto-generated description',
+        ]);
+
+        CRUD::field([
+            'name' => 'provider_reference',
+            'label' => 'Provider Reference',
+            'type' => 'text',
+            'wrapper' => ['class' => 'form-group col-md-12'],
+            'hint' => 'Optional reference number from the provider',
+        ]);
+
+        // Add custom script for client-side validation
+        CRUD::field([
+            'name' => 'separator',
+            'type' => 'custom_html',
+            'value' => '<script>
+                $(document).ready(function() {
+                    // Client-side validation for amount
+                    $("#amount").on("input", function() {
+                        var value = parseFloat($(this).val());
+                        var max = ' . Order::MAX_TOP_UP_AMOUNT . ';
+                        if (value > max) {
+                            $(this).val(max);
+                            new Noty({
+                                type: "warning",
+                                text: "Amount cannot exceed $" + max.toLocaleString()
+                            }).show();
+                        }
+                    });
+                });
+            </script>'
+        ]);
     }
 
     /**

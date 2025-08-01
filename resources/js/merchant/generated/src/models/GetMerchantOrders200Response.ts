@@ -20,6 +20,20 @@ import {
     OrderToJSON,
     OrderToJSONTyped,
 } from './Order';
+import type { GetMerchantOrders200ResponseMeta } from './GetMerchantOrders200ResponseMeta';
+import {
+    GetMerchantOrders200ResponseMetaFromJSON,
+    GetMerchantOrders200ResponseMetaFromJSONTyped,
+    GetMerchantOrders200ResponseMetaToJSON,
+    GetMerchantOrders200ResponseMetaToJSONTyped,
+} from './GetMerchantOrders200ResponseMeta';
+import type { GetMerchantOrders200ResponseLinks } from './GetMerchantOrders200ResponseLinks';
+import {
+    GetMerchantOrders200ResponseLinksFromJSON,
+    GetMerchantOrders200ResponseLinksFromJSONTyped,
+    GetMerchantOrders200ResponseLinksToJSON,
+    GetMerchantOrders200ResponseLinksToJSONTyped,
+} from './GetMerchantOrders200ResponseLinks';
 
 /**
  * 
@@ -35,10 +49,16 @@ export interface GetMerchantOrders200Response {
     data?: Array<Order>;
     /**
      * 
-     * @type {object}
+     * @type {GetMerchantOrders200ResponseLinks}
      * @memberof GetMerchantOrders200Response
      */
-    meta?: object;
+    links?: GetMerchantOrders200ResponseLinks;
+    /**
+     * 
+     * @type {GetMerchantOrders200ResponseMeta}
+     * @memberof GetMerchantOrders200Response
+     */
+    meta?: GetMerchantOrders200ResponseMeta;
 }
 
 /**
@@ -59,7 +79,8 @@ export function GetMerchantOrders200ResponseFromJSONTyped(json: any, ignoreDiscr
     return {
         
         'data': json['data'] == null ? undefined : ((json['data'] as Array<any>).map(OrderFromJSON)),
-        'meta': json['meta'] == null ? undefined : json['meta'],
+        'links': json['links'] == null ? undefined : GetMerchantOrders200ResponseLinksFromJSON(json['links']),
+        'meta': json['meta'] == null ? undefined : GetMerchantOrders200ResponseMetaFromJSON(json['meta']),
     };
 }
 
@@ -75,7 +96,8 @@ export function GetMerchantOrders200ResponseToJSONTyped(value?: GetMerchantOrder
     return {
         
         'data': value['data'] == null ? undefined : ((value['data'] as Array<any>).map(OrderToJSON)),
-        'meta': value['meta'],
+        'links': GetMerchantOrders200ResponseLinksToJSON(value['links']),
+        'meta': GetMerchantOrders200ResponseMetaToJSON(value['meta']),
     };
 }
 

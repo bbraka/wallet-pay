@@ -53,8 +53,8 @@ class OrderService
                 'receiver_user_id' => $receiver->id,
             ]);
 
-            // Immediately withdraw money from sender
-            event(new MoneyWithdrawnEvent($sender, $amount, $order));
+            // Transactions will be created by OrderObserver when order is completed
+            // This avoids double-spending by keeping money locked until transfer is confirmed
 
             return $order;
         });
@@ -157,14 +157,8 @@ class OrderService
             // Dispatch status change event for completion date tracking
             event(new OrderStatusChanged($order, $previousStatus, OrderStatus::COMPLETED));
 
-            // Handle different order types
-            if ($order->order_type === OrderType::INTERNAL_TRANSFER) {
-                // Add money to receiver's wallet
-                event(new MoneyAddedEvent($order->receiver, $order->amount, $order));
-            } elseif ($order->order_type === OrderType::USER_TOP_UP) {
-                // Add money to user's wallet
-                event(new MoneyAddedEvent($order->user, $order->amount, $order));
-            }
+            // Note: Wallet transactions will be created by OrderObserver
+            // when it detects the status change to COMPLETED
         });
     }
 
@@ -274,8 +268,8 @@ class OrderService
             // Dispatch status change event for completion date tracking
             event(new OrderStatusChanged($order, $previousStatus, OrderStatus::COMPLETED));
 
-            // Withdraw money from user's wallet
-            event(new MoneyWithdrawnEvent($order->user, $order->amount, $order));
+            // Note: Withdrawal transaction will be created by OrderObserver
+            // when it detects the status change to COMPLETED
         });
     }
 

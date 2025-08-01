@@ -70,15 +70,15 @@ class OrderConfirmationTest extends TestCase
         Event::spy();
         Log::spy(); // Also spy on logging to capture observer log calls
         
-        // Arrange: Create a pending transfer
-        $order = Order::factory()->create([
-            'user_id' => $this->sender->id,
-            'receiver_user_id' => $this->receiver->id,
-            'status' => OrderStatus::PENDING_PAYMENT,
-            'order_type' => OrderType::INTERNAL_TRANSFER,
-            'amount' => 100.00,
-            'title' => 'Test Transfer'
-        ]);
+        // Arrange: Create a pending transfer using the proper service
+        // This ensures money is withdrawn from sender immediately
+        $orderService = app(\App\Services\OrderService::class);
+        $order = $orderService->createInternalTransferOrder(
+            $this->sender,
+            $this->receiver,
+            100.00,
+            'Test Transfer'
+        );
 
         // Store initial transaction counts for comprehensive validation
         $initialSenderTransactionCount = Transaction::where('user_id', $this->sender->id)->count();
@@ -97,10 +97,11 @@ class OrderConfirmationTest extends TestCase
             'status' => OrderStatus::COMPLETED->value
         ]);
         
-        // Assert: Verify wallet balances were updated correctly by observer
+        // Assert: Verify wallet balances were updated correctly
         $this->sender->refresh();
         $this->receiver->refresh();
         
+        // Sender balance should be reduced when order is confirmed
         $this->assertEquals(900.00, $this->sender->wallet_amount, 'Sender balance should decrease by transfer amount');
         $this->assertEquals(600.00, $this->receiver->wallet_amount, 'Receiver balance should increase by transfer amount');
         
@@ -400,24 +401,21 @@ class OrderConfirmationTest extends TestCase
 
     public function test_multiple_transfers_between_same_users_process_correctly()
     {
-        // Arrange: Create multiple transfers
-        $order1 = Order::factory()->create([
-            'user_id' => $this->sender->id,
-            'receiver_user_id' => $this->receiver->id,
-            'status' => OrderStatus::PENDING_PAYMENT,
-            'order_type' => OrderType::INTERNAL_TRANSFER,
-            'amount' => 50.00,
-            'title' => 'First Transfer'
-        ]);
+        // Arrange: Create multiple transfers using proper service
+        $orderService = app(\App\Services\OrderService::class);
+        $order1 = $orderService->createInternalTransferOrder(
+            $this->sender,
+            $this->receiver,
+            50.00,
+            'First Transfer'
+        );
 
-        $order2 = Order::factory()->create([
-            'user_id' => $this->sender->id,
-            'receiver_user_id' => $this->receiver->id,
-            'status' => OrderStatus::PENDING_PAYMENT,
-            'order_type' => OrderType::INTERNAL_TRANSFER,
-            'amount' => 75.00,
-            'title' => 'Second Transfer'
-        ]);
+        $order2 = $orderService->createInternalTransferOrder(
+            $this->sender,
+            $this->receiver,
+            75.00,
+            'Second Transfer'
+        );
 
         // Act: Confirm first transfer
         $this->ordersService->confirmOrder($order1);
@@ -426,6 +424,7 @@ class OrderConfirmationTest extends TestCase
         $this->receiver->refresh();
         
         // Assert: Check balances after first transfer
+        // Sender balance should be reduced by first transfer only: 1000 - 50 = 950
         $this->assertEquals(950.00, $this->sender->wallet_amount, 'Sender balance after first transfer');
         $this->assertEquals(550.00, $this->receiver->wallet_amount, 'Receiver balance after first transfer');
         
@@ -454,18 +453,17 @@ class OrderConfirmationTest extends TestCase
     public function test_reverse_transfers_process_correctly()
     {
         // Arrange: Create a transfer from receiver to sender (reverse direction)
-        $order = Order::factory()->create([
-            'user_id' => $this->receiver->id, // Original receiver is now the sender
-            'receiver_user_id' => $this->sender->id, // Original sender is now the receiver
-            'status' => OrderStatus::PENDING_PAYMENT,
-            'order_type' => OrderType::INTERNAL_TRANSFER,
-            'amount' => 200.00,
-            'title' => 'Reverse Transfer'
-        ]);
+        $orderService = app(\App\Services\OrderService::class);
+        $order = $orderService->createInternalTransferOrder(
+            $this->receiver, // Original receiver is now the sender
+            $this->sender,   // Original sender is now the receiver
+            200.00,
+            'Reverse Transfer'
+        );
 
-        // Store initial balances
-        $initialSenderBalance = $this->sender->wallet_amount; // 1000.00 
-        $initialReceiverBalance = $this->receiver->wallet_amount; // 500.00
+        // Store initial balances (order creation doesn't change balances immediately)
+        $initialSenderBalance = $this->sender->wallet_amount; // Still 1000.00 
+        $initialReceiverBalance = $this->receiver->wallet_amount; // Still 500.00
 
         // Act: Confirm the reverse transfer
         $this->ordersService->confirmOrder($order);

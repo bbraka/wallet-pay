@@ -165,6 +165,121 @@ class PendingApprovalsController extends Controller
     }
 
     /**
+     * Approve a single payment
+     */
+    public function approvePayment(Order $order): RedirectResponse
+    {
+        try {
+            if ($order->status !== OrderStatus::PENDING_PAYMENT) {
+                return back()->with('error', 'Order is not pending payment.');
+            }
+
+            $this->orderService->confirmPayment($order, backpack_user());
+
+            return back()->with('success', "Payment #{$order->id} approved successfully.");
+        } catch (\Exception $e) {
+            return back()->with('error', "Failed to approve payment: {$e->getMessage()}");
+        }
+    }
+
+    /**
+     * Reject a single payment
+     */
+    public function rejectPayment(Request $request, Order $order): RedirectResponse
+    {
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            if ($order->status !== OrderStatus::PENDING_PAYMENT) {
+                return back()->with('error', 'Order is not pending payment.');
+            }
+
+            $this->orderService->rejectPayment($order, backpack_user());
+
+            return back()->with('success', "Payment #{$order->id} rejected successfully.");
+        } catch (\Exception $e) {
+            return back()->with('error', "Failed to reject payment: {$e->getMessage()}");
+        }
+    }
+
+    /**
+     * Bulk approve payments
+     */
+    public function bulkApprovePayments(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'order_ids' => 'required|array',
+            'order_ids.*' => 'integer|exists:orders,id'
+        ]);
+
+        $orderIds = $request->input('order_ids');
+        $successCount = 0;
+        $errors = [];
+
+        foreach ($orderIds as $orderId) {
+            try {
+                $order = Order::findOrFail($orderId);
+                
+                if ($order->status === OrderStatus::PENDING_PAYMENT) {
+                    $this->orderService->confirmPayment($order, backpack_user());
+                    $successCount++;
+                } else {
+                    $errors[] = "Order #{$orderId} is not pending payment.";
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Order #{$orderId}: {$e->getMessage()}";
+            }
+        }
+
+        $message = "Successfully approved {$successCount} payment(s).";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+
+        return back()->with($successCount > 0 ? 'success' : 'error', $message);
+    }
+
+    /**
+     * Bulk reject payments
+     */
+    public function bulkRejectPayments(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'order_ids' => 'required|array',
+            'order_ids.*' => 'integer|exists:orders,id',
+            'bulk_rejection_reason' => 'nullable|string|max:500'
+        ]);
+
+        $orderIds = $request->input('order_ids');
+        $successCount = 0;
+        $errors = [];
+
+        foreach ($orderIds as $orderId) {
+            try {
+                $order = Order::findOrFail($orderId);
+                
+                if ($order->status === OrderStatus::PENDING_PAYMENT) {
+                    $this->orderService->rejectPayment($order, backpack_user());
+                    $successCount++;
+                } else {
+                    $errors[] = "Order #{$orderId} is not pending payment.";
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Order #{$orderId}: {$e->getMessage()}";
+            }
+        }
+
+        $message = "Successfully rejected {$successCount} payment(s).";
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode(', ', $errors);
+        }
+
+        return back()->with($successCount > 0 ? 'success' : 'error', $message);
+    }
+
+    /**
      * Get pending approvals data as JSON (for AJAX requests)
      */
     public function getPendingData(): JsonResponse

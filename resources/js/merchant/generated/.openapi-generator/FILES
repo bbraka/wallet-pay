@@ -3,6 +3,7 @@
 README.md
 package.json
 src/apis/MerchantAuthenticationApi.ts
+src/apis/MerchantTransactionsApi.ts
 src/apis/OrdersApi.ts
 src/apis/SchemaApi.ts
 src/apis/TopUpProvidersApi.ts
@@ -12,6 +13,11 @@ src/models/CreateMerchantOrderRequest.ts
 src/models/CreateMerchantWithdrawalRequest.ts
 src/models/GetMerchantOrderRules200Response.ts
 src/models/GetMerchantOrders200Response.ts
+src/models/GetMerchantOrders200ResponseLinks.ts
+src/models/GetMerchantOrders200ResponseMeta.ts
+src/models/GetMerchantOrdersStatusParameter.ts
+src/models/GetMerchantTransaction200Response.ts
+src/models/GetMerchantTransactions200Response.ts
 src/models/LoginRequest.ts
 src/models/LoginResponse.ts
 src/models/LogoutResponse.ts

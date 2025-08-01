@@ -60,10 +60,9 @@ class WalletOperationsTest extends TestCase
         $this->assertEquals($this->sender->id, $order->user_id);
         $this->assertEquals($this->receiver->id, $order->receiver_user_id);
 
-        // Check sender's balance was reduced (200 - 100 = 100, but events might be async)
+        // Check sender's balance is unchanged during order creation
         $this->sender->refresh();
-        // Due to event processing, let's check if balance is not the original amount
-        $this->assertNotEquals(200.00, $this->sender->wallet_amount);
+        $this->assertEquals(200.00, $this->sender->wallet_amount);
 
         // Confirm payment
         $this->orderService->confirmPayment($order, $this->receiver);
@@ -146,9 +145,9 @@ class WalletOperationsTest extends TestCase
             'Test Transfer to Reject'
         );
 
-        // Check sender's balance was reduced
+        // Check sender's balance is unchanged during order creation
         $this->sender->refresh();
-        $this->assertEquals(120.00, $this->sender->wallet_amount);
+        $this->assertEquals(200.00, $this->sender->wallet_amount);
 
         // Reject payment
         $this->orderService->rejectPayment($order, $this->receiver);

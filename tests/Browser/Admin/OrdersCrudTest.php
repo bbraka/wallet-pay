@@ -159,4 +159,53 @@ class OrdersCrudTest extends DuskTestCase
                     ->assertSee('Orders'); // Just verify the page loads correctly
         });
     }
+
+    public function test_admin_can_edit_order_without_user_field()
+    {
+        // Create a pending order that can be edited
+        $order = Order::factory()->create([
+            'status' => 'pending_payment',
+            'user_id' => $this->targetUser->id,
+            'top_up_provider_id' => $this->provider->id,
+            'amount' => 100.00,
+            'description' => 'Original description'
+        ]);
+
+        $this->browse(function (Browser $browser) use ($order) {
+            $browser->loginAs($this->adminUser, 'backpack')
+                    ->visit("/admin/order/{$order->id}/edit")
+                    ->pause(3000); // Wait longer for redirect if needed
+                    
+            // Check if we got redirected to login
+            $currentPath = $browser->driver->getCurrentURL();
+            if (str_contains($currentPath, '/admin/login')) {
+                $browser->type('email', $this->adminUser->email)
+                        ->type('password', 'password')
+                        ->press('Login')
+                        ->pause(2000)
+                        ->visit("/admin/order/{$order->id}/edit");
+            }
+            
+            $browser->assertPathIs("/admin/order/{$order->id}/edit")
+                    ->waitFor('form', 10) // Wait for form to load
+                    ->assertSee('User') // Should see user info as read-only display
+                    ->assertSee($this->targetUser->name) // Should show current user's name
+                    ->assertSee($this->targetUser->email) // Should show current user's email
+                    ->assertPresent('input[name="user_id"][type="hidden"]') // Hidden field should be present
+                    ->assertNotPresent('select[name="user_id"]') // No select dropdown for user
+                    ->assertPresent('select[name="top_up_provider_id"]') // Provider should be editable
+                    ->assertPresent('input[name="amount"]') // Amount should be editable
+                    ->assertPresent('textarea[name="description"]') // Description should be editable
+                    // Test that the form can be submitted successfully
+                    ->type('description', 'Updated description')
+                    ->press('Save')
+                    ->pause(2000) // Wait for save to complete
+                    ->assertPathIsNot("/admin/order/{$order->id}/edit"); // Should redirect away from edit page
+        });
+        
+        // Verify the order was updated successfully
+        $order->refresh();
+        $this->assertEquals('Updated description', $order->description);
+        $this->assertEquals($this->targetUser->id, $order->user_id); // User should remain unchanged
+    }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\SchemaController;
 use App\Http\Controllers\Merchant\AuthController;
 use App\Http\Controllers\Merchant\OrdersController;
 use App\Http\Controllers\Merchant\TopUpProvidersController;
+use App\Http\Controllers\Merchant\TransactionsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -37,5 +38,9 @@ Route::prefix('merchant')->name('merchant.')->group(function () {
         
         // Top-up providers
         Route::get('/top-up-providers', [TopUpProvidersController::class, 'index'])->name('top-up-providers.index');
+        
+        // Transactions
+        Route::get('/transactions', [TransactionsController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/{transaction}', [TransactionsController::class, 'show'])->name('transactions.show')->where('transaction', '[0-9]+');
     });
 });

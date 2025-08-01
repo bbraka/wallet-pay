@@ -19,6 +19,7 @@ import type {
   CreateMerchantWithdrawalRequest,
   GetMerchantOrderRules200Response,
   GetMerchantOrders200Response,
+  GetMerchantOrdersStatusParameter,
   Order,
   UpdateMerchantOrderRequest,
 } from '../models/index';
@@ -31,6 +32,8 @@ import {
     GetMerchantOrderRules200ResponseToJSON,
     GetMerchantOrders200ResponseFromJSON,
     GetMerchantOrders200ResponseToJSON,
+    GetMerchantOrdersStatusParameterFromJSON,
+    GetMerchantOrdersStatusParameterToJSON,
     OrderFromJSON,
     OrderToJSON,
     UpdateMerchantOrderRequestFromJSON,
@@ -62,7 +65,7 @@ export interface GetMerchantOrdersRequest {
     dateTo?: Date;
     minAmount?: number;
     maxAmount?: number;
-    status?: GetMerchantOrdersStatusEnum;
+    status?: GetMerchantOrdersStatusParameter;
     receiverUserId?: number;
 }
 
@@ -545,15 +548,3 @@ export class OrdersApi extends runtime.BaseAPI {
     }
 
 }
-
-/**
- * @export
- */
-export const GetMerchantOrdersStatusEnum = {
-    PendingPayment: 'pending_payment',
-    PendingApproval: 'pending_approval',
-    Completed: 'completed',
-    Cancelled: 'cancelled',
-    Refunded: 'refunded'
-} as const;
-export type GetMerchantOrdersStatusEnum = typeof GetMerchantOrdersStatusEnum[keyof typeof GetMerchantOrdersStatusEnum];

@@ -1,18 +1,18 @@
 {
-  "mcpServers": {
-    "mysql": {
+  "mcpServers": {    "mysql": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "mysql-mcp-server"
-      ],
+      "args": ["-y", "@benborla29/mcp-server-mysql@2.0.3"],
       "env": {
         "MYSQL_HOST": "mysql",
         "MYSQL_PORT": "3306",
         "MYSQL_USER": "${MYSQL_USER}",
-        "MYSQL_PASSWORD": "${MYSQL_PASSWORD}",
-        "MYSQL_DATABASE": "${MYSQL_DATABASE}"
+        "MYSQL_PASS": "${MYSQL_PASSWORD}",
+        "MYSQL_DB": "${MYSQL_DATABASE}",
+        "ALLOW_INSERT_OPERATION": "true",
+        "ALLOW_UPDATE_OPERATION": "true",
+        "ALLOW_DELETE_OPERATION": "false",
+        "ALLOW_DDL_OPERATION": "true"
       }
     },
     "playwright": {

@@ -7,3 +7,5 @@ This is wrong - the user cannot be edited. It should not be a part of the form a
 when I create a withdrawal request, I want to be taken back to the wallet page after a success alert is shown, not show a success alertbox.
 i approved a payment with the test user, but I don't see it in the transaction history in the wallet page. it should be visible. the transaction history should show all rows in the transaction table for that user. also show debit amounts with danger color and credits with success color in the table.
 i still see admin adjustment as a possible payment method for top-ups in the select dropdown in the http://localhost:8000/merchant/top-up page. creating a top-up order should also just show a confirmation alert and take you back to the wallet page.
+
+a couple of phpunit tests still fail - investigate and fix them.

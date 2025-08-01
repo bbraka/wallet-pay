@@ -88,8 +88,13 @@ class OrdersController extends Controller
      *     @OA\Parameter(
      *         name="status",
      *         in="query",
-     *         description="Filter by order status",
-     *         @OA\Schema(type="string", enum={"pending_payment", "pending_approval", "completed", "cancelled", "refunded"})
+     *         description="Filter by order status (can be a single status or array of statuses)",
+     *         @OA\Schema(
+     *             oneOf={
+     *                 @OA\Schema(type="string", enum={"pending_payment", "pending_approval", "completed", "cancelled", "refunded"}),
+     *                 @OA\Schema(type="array", @OA\Items(type="string", enum={"pending_payment", "pending_approval", "completed", "cancelled", "refunded"}))
+     *             }
+     *         )
      *     ),
      *     @OA\Parameter(
      *         name="receiver_user_id",
@@ -99,11 +104,29 @@ class OrdersController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="List of orders",
+     *         description="Paginated list of orders",
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Order")),
-     *             @OA\Property(property="meta", type="object")
+     *             @OA\Property(
+     *                 property="links",
+     *                 type="object",
+     *                 @OA\Property(property="first", type="string", nullable=true),
+     *                 @OA\Property(property="last", type="string", nullable=true),
+     *                 @OA\Property(property="prev", type="string", nullable=true),
+     *                 @OA\Property(property="next", type="string", nullable=true)
+     *             ),
+     *             @OA\Property(
+     *                 property="meta",
+     *                 type="object",
+     *                 @OA\Property(property="current_page", type="integer"),
+     *                 @OA\Property(property="from", type="integer", nullable=true),
+     *                 @OA\Property(property="last_page", type="integer"),
+     *                 @OA\Property(property="path", type="string"),
+     *                 @OA\Property(property="per_page", type="integer"),
+     *                 @OA\Property(property="to", type="integer", nullable=true),
+     *                 @OA\Property(property="total", type="integer")
+     *             )
      *         )
      *     )
      * )

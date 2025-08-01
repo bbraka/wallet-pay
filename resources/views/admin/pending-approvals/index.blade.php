@@ -17,6 +17,38 @@
     </section>
 @endsection
 
+@section('before_styles')
+<style>
+/* Fix modal z-index and pointer events issues */
+.modal-backdrop {
+    z-index: 1040 !important;
+    pointer-events: none !important;
+}
+.modal {
+    z-index: 1050 !important;
+    pointer-events: none !important;
+}
+.modal-dialog {
+    z-index: 1051 !important;
+    pointer-events: auto !important;
+    margin: 1.75rem auto;
+    position: relative;
+}
+.modal-content {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1052 !important;
+}
+.modal-header, .modal-body, .modal-footer {
+    pointer-events: auto !important;
+}
+/* Ensure buttons in modals are clickable */
+.modal button {
+    pointer-events: auto !important;
+}
+</style>
+@endsection
+
 @section('content')
 <div class="row">
     <div class="col-md-12">
@@ -102,12 +134,9 @@
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <form method="POST" action="{{ route('admin.pending-approvals.approve-withdrawal', $withdrawal->id) }}" style="display: inline;">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Are you sure you want to approve this withdrawal?')">
-                                                        <i class="fa fa-check"></i> Approve
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="btn btn-success btn-sm" onclick="submitApprovalForm({{ $withdrawal->id }})">
+                                                    <i class="fa fa-check"></i> Approve
+                                                </button>
                                                 <button type="button" class="btn btn-danger btn-sm" onclick="showDenyModal({{ $withdrawal->id }})">
                                                     <i class="fa fa-times"></i> Deny
                                                 </button>
@@ -118,6 +147,13 @@
                             </tbody>
                         </table>
                     </form>
+                    
+                    <!-- Individual approval forms (hidden) -->
+                    @foreach($pendingWithdrawals as $withdrawal)
+                        <form id="approve-form-{{ $withdrawal->id }}" method="POST" action="{{ route('admin.pending-approvals.approve-withdrawal', $withdrawal->id) }}" style="display: none;">
+                            @csrf
+                        </form>
+                    @endforeach
                     
                     <div class="card-footer">
                         {{ $pendingWithdrawals->links() }}
@@ -137,53 +173,90 @@
                     <i class="fa fa-credit-card"></i> 
                     Pending Payments ({{ $pendingPayments->total() }})
                 </h3>
+                <div class="card-tools">
+                    @if($pendingPayments->count() > 0)
+                        <button type="button" class="btn btn-success btn-sm" id="bulk-approve-payments-btn">
+                            <i class="fa fa-check"></i> Bulk Approve
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" id="bulk-reject-payments-btn">
+                            <i class="fa fa-times"></i> Bulk Reject
+                        </button>
+                    @endif
+                </div>
             </div>
             <div class="card-body p-0">
                 @if($pendingPayments->count() > 0)
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>User</th>
-                                <th>Amount</th>
-                                <th>Type</th>
-                                <th>Created At</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($pendingPayments as $payment)
+                    <form id="bulk-payment-action-form" method="POST">
+                        @csrf
+                        <table class="table table-striped">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <strong>#{{ $payment->id }}</strong>
-                                    </td>
-                                    <td>
-                                        {{ $payment->user->name }}<br>
-                                        <small class="text-muted">{{ $payment->user->email }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-primary">${{ number_format($payment->amount, 2) }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-info">{{ $payment->order_type->label() }}</span>
-                                    </td>
-                                    <td>
-                                        {{ $payment->created_at->format('M d, Y H:i') }}
-                                    </td>
-                                    <td>
-                                        @if($payment->receiver)
-                                            <strong>To:</strong> {{ $payment->receiver->name }} ({{ $payment->receiver->email }})
-                                        @elseif($payment->topUpProvider)
-                                            <strong>Provider:</strong> {{ $payment->topUpProvider->name }}
-                                        @endif
-                                        @if($payment->provider_reference)
-                                            <br><strong>Ref:</strong> {{ $payment->provider_reference }}
-                                        @endif
-                                    </td>
+                                    <th width="50">
+                                        <input type="checkbox" id="select-all-payments">
+                                    </th>
+                                    <th>Order ID</th>
+                                    <th>User</th>
+                                    <th>Amount</th>
+                                    <th>Type</th>
+                                    <th>Created At</th>
+                                    <th>Details</th>
+                                    <th width="200">Actions</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach($pendingPayments as $payment)
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="order_ids[]" value="{{ $payment->id }}" class="payment-checkbox">
+                                        </td>
+                                        <td>
+                                            <strong>#{{ $payment->id }}</strong>
+                                        </td>
+                                        <td>
+                                            {{ $payment->user->name }}<br>
+                                            <small class="text-muted">{{ $payment->user->email }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-primary">${{ number_format($payment->amount, 2) }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ $payment->order_type->label() }}</span>
+                                        </td>
+                                        <td>
+                                            {{ $payment->created_at->format('M d, Y H:i') }}
+                                        </td>
+                                        <td>
+                                            @if($payment->receiver)
+                                                <strong>To:</strong> {{ $payment->receiver->name }} ({{ $payment->receiver->email }})
+                                            @elseif($payment->topUpProvider)
+                                                <strong>Provider:</strong> {{ $payment->topUpProvider->name }}
+                                            @endif
+                                            @if($payment->provider_reference)
+                                                <br><strong>Ref:</strong> {{ $payment->provider_reference }}
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-success btn-sm" onclick="submitPaymentApprovalForm({{ $payment->id }})">
+                                                    <i class="fa fa-check"></i> Approve
+                                                </button>
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="showRejectPaymentModal({{ $payment->id }})">
+                                                    <i class="fa fa-times"></i> Reject
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </form>
+                    
+                    <!-- Individual payment approval forms (hidden) -->
+                    @foreach($pendingPayments as $payment)
+                        <form id="approve-payment-form-{{ $payment->id }}" method="POST" action="{{ route('admin.pending-approvals.approve-payment', $payment->id) }}" style="display: none;">
+                            @csrf
+                        </form>
+                    @endforeach
                     
                     <div class="card-footer">
                         {{ $pendingPayments->links() }}
@@ -252,6 +325,61 @@
         </div>
     </div>
 </div>
+
+<!-- Reject Payment Modal -->
+<div class="modal fade" id="rejectPaymentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="reject-payment-form" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h4 class="modal-title">Reject Payment</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="rejection_reason">Reason for rejection (optional):</label>
+                        <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3" placeholder="Enter reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Reject Payments Modal -->
+<div class="modal fade" id="bulkRejectPaymentsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="bulk-reject-payments-form" method="POST" action="{{ route('admin.pending-approvals.bulk-reject-payments') }}">
+                @csrf
+                <div class="modal-header">
+                    <h4 class="modal-title">Bulk Reject Payments</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to reject <span id="selected-payments-count">0</span> selected payment(s)?</p>
+                    <div class="form-group">
+                        <label for="bulk_rejection_reason">Reason for rejection (optional):</label>
+                        <textarea name="bulk_rejection_reason" id="bulk_rejection_reason" class="form-control" rows="3" placeholder="Enter reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Selected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('after_scripts')
@@ -268,14 +396,32 @@ $(document).ready(function() {
         updateBulkActionButtons();
     });
 
-    // Update bulk action button states
+    // Select all payments checkbox
+    $('#select-all-payments').change(function() {
+        $('.payment-checkbox').prop('checked', this.checked);
+        updateBulkPaymentActionButtons();
+    });
+
+    // Individual payment checkbox
+    $('.payment-checkbox').change(function() {
+        updateBulkPaymentActionButtons();
+    });
+
+    // Update bulk action button states for withdrawals
     function updateBulkActionButtons() {
         const selectedCount = $('.withdrawal-checkbox:checked').length;
         $('#bulk-approve-btn, #bulk-deny-btn').prop('disabled', selectedCount === 0);
         $('#selected-count').text(selectedCount);
     }
 
-    // Bulk approve
+    // Update bulk action button states for payments
+    function updateBulkPaymentActionButtons() {
+        const selectedCount = $('.payment-checkbox:checked').length;
+        $('#bulk-approve-payments-btn, #bulk-reject-payments-btn').prop('disabled', selectedCount === 0);
+        $('#selected-payments-count').text(selectedCount);
+    }
+
+    // Bulk approve withdrawals
     $('#bulk-approve-btn').click(function() {
         const selectedIds = $('.withdrawal-checkbox:checked').map(function() {
             return $(this).val();
@@ -292,7 +438,7 @@ $(document).ready(function() {
         }
     });
 
-    // Bulk deny
+    // Bulk deny withdrawals
     $('#bulk-deny-btn').click(function() {
         const selectedIds = $('.withdrawal-checkbox:checked').map(function() {
             return $(this).val();
@@ -311,14 +457,97 @@ $(document).ready(function() {
         $('#bulkDenyModal').modal('show');
     });
 
+    // Bulk approve payments
+    $('#bulk-approve-payments-btn').click(function() {
+        const selectedIds = $('.payment-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        if (selectedIds.length === 0) {
+            return;
+        }
+
+        if (confirm(`Are you sure you want to approve ${selectedIds.length} payment(s)?`)) {
+            const form = $('#bulk-payment-action-form');
+            form.attr('action', '{{ route("admin.pending-approvals.bulk-approve-payments") }}');
+            form.submit();
+        }
+    });
+
+    // Bulk reject payments
+    $('#bulk-reject-payments-btn').click(function() {
+        const selectedIds = $('.payment-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
+
+        if (selectedIds.length === 0) {
+            return;
+        }
+
+        // Copy selected IDs to bulk reject payments form
+        $('#bulk-reject-payments-form').find('input[name="order_ids[]"]').remove();
+        selectedIds.forEach(function(id) {
+            $('#bulk-reject-payments-form').append('<input type="hidden" name="order_ids[]" value="' + id + '">');
+        });
+
+        $('#bulkRejectPaymentsModal').modal('show');
+    });
+
     // Initialize button states
     updateBulkActionButtons();
+    updateBulkPaymentActionButtons();
 });
+
+function submitApprovalForm(orderId) {
+    if (confirm('Are you sure you want to approve this withdrawal?')) {
+        document.getElementById('approve-form-' + orderId).submit();
+    }
+}
+
+function submitPaymentApprovalForm(orderId) {
+    if (confirm('Are you sure you want to approve this payment?')) {
+        document.getElementById('approve-payment-form-' + orderId).submit();
+    }
+}
 
 function showDenyModal(orderId) {
     const form = $('#deny-form');
     form.attr('action', '/admin/pending-approvals/deny-withdrawal/' + orderId);
-    $('#denyModal').modal('show');
+    
+    // Clear any existing modal state
+    $('#denyModal').modal('hide');
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open');
+    
+    // Small delay to ensure cleanup, then show modal
+    setTimeout(function() {
+        $('#denyModal').modal({
+            backdrop: true,
+            keyboard: true,
+            focus: true,
+            show: true
+        });
+    }, 100);
+}
+
+function showRejectPaymentModal(orderId) {
+    const form = $('#reject-payment-form');
+    form.attr('action', '/admin/pending-approvals/reject-payment/' + orderId);
+    
+    // Clear any existing modal state
+    $('#rejectPaymentModal').modal('hide');
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open');
+    
+    // Small delay to ensure cleanup, then show modal
+    setTimeout(function() {
+        $('#rejectPaymentModal').modal({
+            backdrop: true,
+            keyboard: true,
+            focus: true,
+            show: true
+        });
+    }, 100);
 }
 </script>
 @endsection
