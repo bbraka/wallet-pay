@@ -9,7 +9,8 @@
 @endphp
 
 @section('header')
-    <section class="container-fluid">
+    <section class="container-flui<!-- Bulk Reject Payments Modal -->
+<div class="modal fade" id="bulkRejectPaymentsModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">>
         <h2>
             <span class="text-capitalize">Pending Approvals</span>
             <small>Manage pending withdrawals and payments</small>
@@ -17,44 +18,12 @@
     </section>
 @endsection
 
-@section('before_styles')
-<style>
-/* Fix modal z-index and pointer events issues */
-.modal-backdrop {
-    z-index: 1040 !important;
-    pointer-events: none !important;
-}
-.modal {
-    z-index: 1050 !important;
-    pointer-events: none !important;
-}
-.modal-dialog {
-    z-index: 1051 !important;
-    pointer-events: auto !important;
-    margin: 1.75rem auto;
-    position: relative;
-}
-.modal-content {
-    pointer-events: auto !important;
-    position: relative;
-    z-index: 1052 !important;
-}
-.modal-header, .modal-body, .modal-footer {
-    pointer-events: auto !important;
-}
-/* Ensure buttons in modals are clickable */
-.modal button {
-    pointer-events: auto !important;
-}
-</style>
-@endsection
-
 @section('content')
 <div class="row">
     <div class="col-md-12">
         @if (session('success'))
             <div class="alert alert-success alert-dismissible">
-                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <button type="button" class="close" data-bs-dismiss="alert" aria-hidden="true">&times;</button>
                 <h5><i class="icon fas fa-check"></i> Success!</h5>
                 {{ session('success') }}
             </div>
@@ -62,7 +31,7 @@
 
         @if (session('error'))
             <div class="alert alert-danger alert-dismissible">
-                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <button type="button" class="close" data-bs-dismiss="alert" aria-hidden="true">&times;</button>
                 <h5><i class="icon fas fa-ban"></i> Error!</h5>
                 {{ session('error') }}
             </div>
@@ -272,14 +241,14 @@
 </div>
 
 <!-- Deny Modal -->
-<div class="modal fade" id="denyModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="denyModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form id="deny-form" method="POST">
                 @csrf
                 <div class="modal-header">
                     <h4 class="modal-title">Deny Withdrawal</h4>
-                    <button type="button" class="close" data-dismiss="modal">
+                    <button type="button" class="close" data-bs-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -290,7 +259,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">Deny Withdrawal</button>
                 </div>
             </form>
@@ -299,14 +268,14 @@
 </div>
 
 <!-- Bulk Deny Modal -->
-<div class="modal fade" id="bulkDenyModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="bulkDenyModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form id="bulk-deny-form" method="POST" action="{{ route('admin.pending-approvals.bulk-deny-withdrawals') }}">
                 @csrf
                 <div class="modal-header">
                     <h4 class="modal-title">Bulk Deny Withdrawals</h4>
-                    <button type="button" class="close" data-dismiss="modal">
+                    <button type="button" class="close" data-bs-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -318,7 +287,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">Deny Selected</button>
                 </div>
             </form>
@@ -327,14 +296,14 @@
 </div>
 
 <!-- Reject Payment Modal -->
-<div class="modal fade" id="rejectPaymentModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="rejectPaymentModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form id="reject-payment-form" method="POST">
                 @csrf
                 <div class="modal-header">
                     <h4 class="modal-title">Reject Payment</h4>
-                    <button type="button" class="close" data-dismiss="modal">
+                    <button type="button" class="close" data-bs-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -345,7 +314,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">Reject Payment</button>
                 </div>
             </form>
@@ -354,14 +323,14 @@
 </div>
 
 <!-- Bulk Reject Payments Modal -->
-<div class="modal fade" id="bulkRejectPaymentsModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="bulkRejectPaymentsModal" tabindex="-1" role="dialog" data-backdrop="true" data-keyboard="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form id="bulk-reject-payments-form" method="POST" action="{{ route('admin.pending-approvals.bulk-reject-payments') }}">
                 @csrf
                 <div class="modal-header">
                     <h4 class="modal-title">Bulk Reject Payments</h4>
-                    <button type="button" class="close" data-dismiss="modal">
+                    <button type="button" class="close" data-bs-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
@@ -373,7 +342,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">Reject Selected</button>
                 </div>
             </form>
@@ -512,42 +481,20 @@ function submitPaymentApprovalForm(orderId) {
 
 function showDenyModal(orderId) {
     const form = $('#deny-form');
-    form.attr('action', '/admin/pending-approvals/deny-withdrawal/' + orderId);
-    
-    // Clear any existing modal state
-    $('#denyModal').modal('hide');
-    $('.modal-backdrop').remove();
-    $('body').removeClass('modal-open');
-    
-    // Small delay to ensure cleanup, then show modal
-    setTimeout(function() {
-        $('#denyModal').modal({
-            backdrop: true,
-            keyboard: true,
-            focus: true,
-            show: true
-        });
-    }, 100);
+    form.attr('action', '{{ url("admin/pending-approvals/deny-withdrawal") }}/' + orderId);
+    $('#denyModal').modal('show');
 }
 
 function showRejectPaymentModal(orderId) {
     const form = $('#reject-payment-form');
-    form.attr('action', '/admin/pending-approvals/reject-payment/' + orderId);
-    
-    // Clear any existing modal state
-    $('#rejectPaymentModal').modal('hide');
-    $('.modal-backdrop').remove();
-    $('body').removeClass('modal-open');
-    
-    // Small delay to ensure cleanup, then show modal
-    setTimeout(function() {
-        $('#rejectPaymentModal').modal({
-            backdrop: true,
-            keyboard: true,
-            focus: true,
-            show: true
-        });
-    }, 100);
+    form.attr('action', '{{ url("admin/pending-approvals/reject-payment") }}/' + orderId);
+    $('#rejectPaymentModal').modal('show');
 }
+
+
+    $(document).ready(function () {
+        // Removed unnecessary modal backdrop manipulation
+        // Bootstrap 5 handles modal z-index properly
+    });
 </script>
 @endsection

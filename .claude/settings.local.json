@@ -17,7 +17,9 @@
       "Bash(npm run generate-api-types:*)",
       "Bash(npm run generate:api:*)",
       "Bash(npm run build:*)",
-      "mcp__playwright__browser_tab_new"
+      "mcp__playwright__browser_tab_new",
+      "Bash(php artisan view:clear:*)",
+      "mcp__playwright__browser_press_key"
     ],
     "deny": []
   },
