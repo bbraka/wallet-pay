@@ -9,8 +9,7 @@
 @endphp
 
 @section('header')
-    <section class="container-flui<!-- Bulk Reject Payments Modal -->
-<div class="modal fade" id="bulkRejectPaymentsModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">>
+    <section class="container-fluid">
         <h2>
             <span class="text-capitalize">Pending Approvals</span>
             <small>Manage pending withdrawals and payments</small>
@@ -106,7 +105,7 @@
                                                 <button type="button" class="btn btn-success btn-sm" onclick="submitApprovalForm({{ $withdrawal->id }})">
                                                     <i class="fa fa-check"></i> Approve
                                                 </button>
-                                                <button type="button" class="btn btn-danger btn-sm" onclick="showDenyModal({{ $withdrawal->id }})">
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="denyWithdrawal({{ $withdrawal->id }})">
                                                     <i class="fa fa-times"></i> Deny
                                                 </button>
                                             </div>
@@ -121,6 +120,10 @@
                     @foreach($pendingWithdrawals as $withdrawal)
                         <form id="approve-form-{{ $withdrawal->id }}" method="POST" action="{{ route('admin.pending-approvals.approve-withdrawal', $withdrawal->id) }}" style="display: none;">
                             @csrf
+                        </form>
+                        <form id="deny-form-{{ $withdrawal->id }}" method="POST" action="{{ route('admin.pending-approvals.deny-withdrawal', $withdrawal->id) }}" style="display: none;">
+                            @csrf
+                            <input type="hidden" name="denial_reason" value="">
                         </form>
                     @endforeach
                     
@@ -209,7 +212,7 @@
                                                 <button type="button" class="btn btn-success btn-sm" onclick="submitPaymentApprovalForm({{ $payment->id }})">
                                                     <i class="fa fa-check"></i> Approve
                                                 </button>
-                                                <button type="button" class="btn btn-danger btn-sm" onclick="showRejectPaymentModal({{ $payment->id }})">
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="rejectPayment({{ $payment->id }})">
                                                     <i class="fa fa-times"></i> Reject
                                                 </button>
                                             </div>
@@ -224,6 +227,10 @@
                     @foreach($pendingPayments as $payment)
                         <form id="approve-payment-form-{{ $payment->id }}" method="POST" action="{{ route('admin.pending-approvals.approve-payment', $payment->id) }}" style="display: none;">
                             @csrf
+                        </form>
+                        <form id="reject-payment-form-{{ $payment->id }}" method="POST" action="{{ route('admin.pending-approvals.reject-payment', $payment->id) }}" style="display: none;">
+                            @csrf
+                            <input type="hidden" name="rejection_reason" value="">
                         </form>
                     @endforeach
                     
@@ -240,115 +247,17 @@
     </div>
 </div>
 
-<!-- Deny Modal -->
-<div class="modal fade" id="denyModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="deny-form" method="POST">
-                @csrf
-                <div class="modal-header">
-                    <h4 class="modal-title">Deny Withdrawal</h4>
-                    <button type="button" class="close" data-bs-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="denial_reason">Reason for denial (optional):</label>
-                        <textarea name="denial_reason" id="denial_reason" class="form-control" rows="3" placeholder="Enter reason for denial..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Deny Withdrawal</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Hidden bulk forms -->
+<form id="bulk-deny-form" method="POST" action="{{ route('admin.pending-approvals.bulk-deny-withdrawals') }}" style="display: none;">
+    @csrf
+    <input type="hidden" name="bulk_denial_reason" value="">
+</form>
 
-<!-- Bulk Deny Modal -->
-<div class="modal fade" id="bulkDenyModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="bulk-deny-form" method="POST" action="{{ route('admin.pending-approvals.bulk-deny-withdrawals') }}">
-                @csrf
-                <div class="modal-header">
-                    <h4 class="modal-title">Bulk Deny Withdrawals</h4>
-                    <button type="button" class="close" data-bs-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to deny <span id="selected-count">0</span> selected withdrawal(s)?</p>
-                    <div class="form-group">
-                        <label for="bulk_denial_reason">Reason for denial (optional):</label>
-                        <textarea name="bulk_denial_reason" id="bulk_denial_reason" class="form-control" rows="3" placeholder="Enter reason for denial..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Deny Selected</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<form id="bulk-reject-payments-form" method="POST" action="{{ route('admin.pending-approvals.bulk-reject-payments') }}" style="display: none;">
+    @csrf
+    <input type="hidden" name="bulk_rejection_reason" value="">
+</form>
 
-<!-- Reject Payment Modal -->
-<div class="modal fade" id="rejectPaymentModal" tabindex="-1" role="dialog" data-bs-backdrop="true" data-bs-keyboard="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="reject-payment-form" method="POST">
-                @csrf
-                <div class="modal-header">
-                    <h4 class="modal-title">Reject Payment</h4>
-                    <button type="button" class="close" data-bs-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="rejection_reason">Reason for rejection (optional):</label>
-                        <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3" placeholder="Enter reason for rejection..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Reject Payment</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Bulk Reject Payments Modal -->
-<div class="modal fade" id="bulkRejectPaymentsModal" tabindex="-1" role="dialog" data-backdrop="true" data-keyboard="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="bulk-reject-payments-form" method="POST" action="{{ route('admin.pending-approvals.bulk-reject-payments') }}">
-                @csrf
-                <div class="modal-header">
-                    <h4 class="modal-title">Bulk Reject Payments</h4>
-                    <button type="button" class="close" data-bs-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to reject <span id="selected-payments-count">0</span> selected payment(s)?</p>
-                    <div class="form-group">
-                        <label for="bulk_rejection_reason">Reason for rejection (optional):</label>
-                        <textarea name="bulk_rejection_reason" id="bulk_rejection_reason" class="form-control" rows="3" placeholder="Enter reason for rejection..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Reject Selected</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 @endsection
 
 @section('after_scripts')
@@ -417,13 +326,19 @@ $(document).ready(function() {
             return;
         }
 
-        // Copy selected IDs to bulk deny form
-        $('#bulk-deny-form').find('input[name="order_ids[]"]').remove();
-        selectedIds.forEach(function(id) {
-            $('#bulk-deny-form').append('<input type="hidden" name="order_ids[]" value="' + id + '">');
-        });
-
-        $('#bulkDenyModal').modal('show');
+        const reason = prompt(`Are you sure you want to deny ${selectedIds.length} withdrawal(s)?\n\nOptional reason for denial:`, '');
+        if (reason !== null) { // User didn't click Cancel
+            // Copy selected IDs to bulk deny form
+            $('#bulk-deny-form').find('input[name="order_ids[]"]').remove();
+            selectedIds.forEach(function(id) {
+                $('#bulk-deny-form').append('<input type="hidden" name="order_ids[]" value="' + id + '">');
+            });
+            
+            // Set the denial reason
+            $('#bulk-deny-form').find('input[name="bulk_denial_reason"]').val(reason);
+            
+            $('#bulk-deny-form').submit();
+        }
     });
 
     // Bulk approve payments
@@ -453,13 +368,19 @@ $(document).ready(function() {
             return;
         }
 
-        // Copy selected IDs to bulk reject payments form
-        $('#bulk-reject-payments-form').find('input[name="order_ids[]"]').remove();
-        selectedIds.forEach(function(id) {
-            $('#bulk-reject-payments-form').append('<input type="hidden" name="order_ids[]" value="' + id + '">');
-        });
-
-        $('#bulkRejectPaymentsModal').modal('show');
+        const reason = prompt(`Are you sure you want to reject ${selectedIds.length} payment(s)?\n\nOptional reason for rejection:`, '');
+        if (reason !== null) { // User didn't click Cancel
+            // Copy selected IDs to bulk reject payments form
+            $('#bulk-reject-payments-form').find('input[name="order_ids[]"]').remove();
+            selectedIds.forEach(function(id) {
+                $('#bulk-reject-payments-form').append('<input type="hidden" name="order_ids[]" value="' + id + '">');
+            });
+            
+            // Set the rejection reason
+            $('#bulk-reject-payments-form').find('input[name="bulk_rejection_reason"]').val(reason);
+            
+            $('#bulk-reject-payments-form').submit();
+        }
     });
 
     // Initialize button states
@@ -479,22 +400,22 @@ function submitPaymentApprovalForm(orderId) {
     }
 }
 
-function showDenyModal(orderId) {
-    const form = $('#deny-form');
-    form.attr('action', '{{ url("admin/pending-approvals/deny-withdrawal") }}/' + orderId);
-    $('#denyModal').modal('show');
+function denyWithdrawal(orderId) {
+    const reason = prompt('Are you sure you want to deny this withdrawal?\n\nOptional reason for denial:', '');
+    if (reason !== null) { // User didn't click Cancel
+        const form = document.getElementById('deny-form-' + orderId);
+        form.querySelector('input[name="denial_reason"]').value = reason;
+        form.submit();
+    }
 }
 
-function showRejectPaymentModal(orderId) {
-    const form = $('#reject-payment-form');
-    form.attr('action', '{{ url("admin/pending-approvals/reject-payment") }}/' + orderId);
-    $('#rejectPaymentModal').modal('show');
+function rejectPayment(orderId) {
+    const reason = prompt('Are you sure you want to reject this payment?\n\nOptional reason for rejection:', '');
+    if (reason !== null) { // User didn't click Cancel
+        const form = document.getElementById('reject-payment-form-' + orderId);
+        form.querySelector('input[name="rejection_reason"]').value = reason;
+        form.submit();
+    }
 }
-
-
-    $(document).ready(function () {
-        // Removed unnecessary modal backdrop manipulation
-        // Bootstrap 5 handles modal z-index properly
-    });
 </script>
 @endsection
