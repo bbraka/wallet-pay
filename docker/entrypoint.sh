@@ -208,6 +208,19 @@ php artisan basset:cache || echo "Basset cache failed, continuing..."
 
 echo "Laravel application setup completed successfully!"
 
+# Fix PHP-FPM logging configuration for Docker
+echo "Configuring PHP-FPM logging..."
+mkdir -p /var/log
+touch /var/log/php-fpm.log /var/log/php-fpm-access.log
+chmod 664 /var/log/php-fpm*.log
+
+# Update PHP-FPM configuration to use proper log files
+if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then
+    sed -i 's|error_log = /proc/self/fd/2|error_log = /var/log/php-fpm.log|g' /usr/local/etc/php-fpm.d/docker.conf
+    sed -i 's|access.log = /proc/self/fd/2|access.log = /var/log/php-fpm-access.log|g' /usr/local/etc/php-fpm.d/docker.conf
+    echo "PHP-FPM logging configuration updated"
+fi
+
 # Start PHP-FPM
 echo "Starting PHP-FPM..."
 exec "$@"

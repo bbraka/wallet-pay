@@ -2,24 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "Bash(pkill:*)",
-      "Bash(true)",
-      "mcp__playwright__browser_handle_dialog",
-      "mcp__playwright__browser_navigate",
-      "mcp__playwright__browser_close",
-      "mcp__playwright__browser_type",
-      "mcp__playwright__browser_click",
-      "Bash(php artisan tinker:*)",
-      "mcp__mysql__mysql_query",
-      "mcp__playwright__browser_wait_for",
-      "mcp__playwright__browser_console_messages",
-      "mcp__playwright__browser_evaluate",
-      "Bash(npm run generate-api-types:*)",
-      "Bash(npm run generate:api:*)",
-      "Bash(npm run build:*)",
-      "mcp__playwright__browser_tab_new",
-      "Bash(php artisan view:clear:*)",
-      "mcp__playwright__browser_press_key"
+      "Bash(composer install:*)"
     ],
     "deny": []
   },
